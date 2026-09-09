@@ -88,6 +88,12 @@ namespace LaunchPad
 
 		private double _tileNameSize;
 
+		// 文件夹格子 2×2 缩略图的单元格/内框尺寸，随图标大小档位变化（= IconBox/2），
+		// 保证文件夹名与应用名在同一水平线，且关闭动画末帧与格子缩略图完全重合
+		private double _thumbCell = 32.0;
+
+		private double _thumbInner = 28.0;
+
 		private ObservableCollection<AppEntry> _activeList;
 
 		private CategoryTab _activeTab;
@@ -276,6 +282,20 @@ namespace LaunchPad
 			}
 		}
 
+		/// <summary>文件夹格子 2×2 缩略图单个单元格边长（随图标档位 = IconBox/2）。</summary>
+		public double ThumbCell
+		{
+			get => _thumbCell;
+			private set { _thumbCell = value; Raise("ThumbCell"); }
+		}
+
+		/// <summary>文件夹格子缩略图内框边长（= ThumbCell - 4）。</summary>
+		public double ThumbInner
+		{
+			get => _thumbInner;
+			private set { _thumbInner = value; Raise("ThumbInner"); }
+		}
+
 		public ObservableCollection<CategoryTab> Tabs { get; } = new ObservableCollection<CategoryTab>();
 
 
@@ -310,7 +330,9 @@ namespace LaunchPad
 		{
 			// 与 XAML FolderThumbTemplate（34×34 格 + 0.5 边距 + 30 内框）保持同构，
 			// 保证打开动画起始帧 = 格子缩略画面（图标大小/间距完全一致）
-			return (w: 32.0, h: 32.0, m: 0.0, inner: 28.0, nameH: 0.0, nameSize: 0.0);
+			// 与 XAML FolderThumbTemplate（ThumbCell 格 + ThumbInner 内框）保持同构，
+			// 保证关闭动画末帧 = 格子缩略画面（图标大小/间距完全一致）
+			return (w: _thumbCell, h: _thumbCell, m: 0.0, inner: _thumbInner, nameH: 0.0, nameSize: 0.0);
 		}
 
 		private void ApplyTileIconSizes()
@@ -328,6 +350,8 @@ namespace LaunchPad
 		{
 			_app = app;
 			InitializeComponent();
+			InitializeThemeBackground();
+            CategoryStrip.LostMouseCapture+=(_,e)=> { if(e.OriginalSource==CategoryStrip && _panPressed) EndCategoryPan(false); };
 			base.DataContext = this;
             InitializeDragRouting();
             InputBehavior.Apply(this);
@@ -416,6 +440,8 @@ namespace LaunchPad
 			}
             int direction = _activeTab == null ? 1 : Math.Sign(Tabs.IndexOf(tab) - Tabs.IndexOf(_activeTab));
 			_activeTab = tab;
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded,(Action)RevealSelectedCategory);
+			RefreshTheme();
 			foreach (CategoryTab tab2 in Tabs)
 			{
 				tab2.IsSelected = tab2 == tab;
@@ -442,6 +468,24 @@ namespace LaunchPad
 			};
 			IconGrid.BeginAnimation(UIElement.OpacityProperty, animation);
 		}
+
+		/// <summary>公开方法：切换到指定分类（供全局分类快捷键回调使用）。</summary>
+		public void SelectCategory(AppCategory category)
+		{
+			if (category == null) return;
+			var tab = Tabs.FirstOrDefault(t => t.Category?.Id == category.Id);
+			if (tab != null) SelectTab(tab);
+		}
+
+		/// <summary>公开方法：按名称切换到指定分类。</summary>
+		public void SelectCategoryByName(string name)
+		{
+			var tab = Tabs.FirstOrDefault(t => !t.IsAll && t.Category?.Name == name);
+			if (tab != null) SelectTab(tab);
+		}
+
+		/// <summary>公开方法：获取当前活动分类（"全部"视图返回 null）。</summary>
+		public AppCategory GetActiveCategory() => _activeTab?.Category;
 
 		private void RebuildAll()
 		{
@@ -514,6 +558,9 @@ namespace LaunchPad
 				TileWidth = 78.0;
 				TileHeight = 96.0;
 			}
+			// 文件夹 2×2 缩略格 = 应用图标框的一半，保证两行标题水平对齐
+			ThumbCell = IconBox / 2.0;
+			ThumbInner = ThumbCell - 4.0;
 			ApplyTileIconSizes();
 		}
 

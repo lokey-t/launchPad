@@ -1,4 +1,4 @@
-<Window x:Class="LaunchPad.SettingsWindow"
+﻿<Window x:Class="LaunchPad.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:LaunchPad.Converters"
@@ -220,7 +220,7 @@
                         <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Content="常规与启动" GroupName="nav" IsChecked="True" Tag="general" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavHotkey" Style="{StaticResource NavItem}" Content="快捷键" GroupName="nav" Tag="hotkey" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Content="外观与动效" GroupName="nav" Tag="appearance" Checked="Nav_Checked" />
-                        <RadioButton x:Name="NavManage" Style="{StaticResource NavItem}" Content="应用管理" GroupName="nav" Tag="manage" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavManage" Style="{StaticResource NavItem}" Content="分类管理" GroupName="nav" Tag="manage" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}" Content="关于" GroupName="nav" Tag="about" Checked="Nav_Checked" />
                     </StackPanel>
                     <TextBlock Grid.Row="2" Text="让常用工具触手可及" FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource TextHintBrush}" />
@@ -330,10 +330,41 @@
                     </Grid>
                     <TextBlock x:Name="HotkeyStatus" FontSize="11" Foreground="{DynamicResource TextHintBrush}"
                                Margin="0,2,0,0" Text="点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="分类快捷键" Margin="0,22,0,10" />
+                    <ListBox x:Name="HotkeyCategoryList" Height="150" SelectionChanged="HotkeyCategoryList_SelectionChanged" Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+                        <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Margin="8,7">
+                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <TextBlock Text="{Binding HotkeyDisplay}" Foreground="{DynamicResource TextSecondaryBrush}" Margin="18,0,0,0" />
+                        </StackPanel></DataTemplate></ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button x:Name="AddCatHotkeyBtn" Content="添加快捷键" Width="108" Height="34"
+                                Cursor="Hand" Click="AddCatHotkey_Click" IsEnabled="False" />
+                        <Button x:Name="ClearCatHotkeyBtn" Content="删除快捷键" Width="108" Height="34" Margin="8,0,0,0" Cursor="Hand" Click="ClearCatHotkey_Click" IsEnabled="False" />
+                    </StackPanel>
+                    <Border Margin="0,14,0,0" Padding="12,10" BorderThickness="1"
+                            BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource SubPanelBgBrush}" CornerRadius="8">
+                        <Grid>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="允许分类快捷键关闭窗口" FontSize="12.5"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock Text="开启后，若启动台已打开且当前就是该分类，按下快捷键可关闭窗口。" FontSize="11"
+                                           Foreground="{DynamicResource TextHintBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ToggleButton x:Name="AllowCatHotkeyCloseToggle" Style="{StaticResource ToggleSwitch}"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          Checked="AllowCatHotkeyClose_Changed" Unchecked="AllowCatHotkeyClose_Changed" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
 
                 <!-- 外观 -->
                 <StackPanel x:Name="PanelAppearance" Visibility="Collapsed">
+                    <Button Content="打开主题中心 · 配色与背景" Click="OpenThemeCenter" Padding="12,10" Margin="0,0,0,14" HorizontalAlignment="Left" />
+                    <Grid Margin="0,0,0,18">
+                        <TextBlock Text="主页显示主题按钮" Style="{StaticResource RowLabel}" />
+                        <ToggleButton x:Name="ShowThemeButtonToggle" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" Checked="ShowThemeButton_Changed" Unchecked="ShowThemeButton_Changed" />
+                    </Grid>
                     <TextBlock Style="{StaticResource GroupTitle}" Text="外观" />
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
@@ -391,32 +422,36 @@
                     </StackPanel>
                     <TextBlock x:Name="AnimationDescription" Text="兼顾响应速度与视觉连续性。" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,14,0,0" TextWrapping="Wrap" />                </StackPanel>
 
-                <!-- 应用管理 -->
+                <!-- 分类管理 -->
                 <StackPanel x:Name="PanelManage" Visibility="Collapsed">
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="应用管理" />
-                    <TextBlock Text="管理分类与条目。删除分类不会删除磁盘文件。" FontSize="11"
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="分类管理" />
+                    <TextBlock Text="按住分类行上下拖动排序，顺序会同步到主页。删除分类不会删除磁盘文件。" FontSize="11"
                                Foreground="{DynamicResource TextHintBrush}" Margin="0,0,0,10" />
                     <ListBox x:Name="CategoryList" Height="220" BorderThickness="1"
                              BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource SubPanelBgBrush}"
-                             SelectionChanged="CategoryList_SelectionChanged">
+                             SelectionChanged="CategoryList_SelectionChanged" VirtualizingPanel.IsVirtualizing="False" ScrollViewer.CanContentScroll="False"
+                             PreviewMouseLeftButtonDown="CategorySort_Down" PreviewMouseMove="CategorySort_Move" PreviewMouseLeftButtonUp="CategorySort_Up">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⠿" Margin="0,0,12,0" Foreground="{DynamicResource TextHintBrush}" />
                                     <TextBlock Text="{Binding Name}" FontSize="12.5"
                                                Foreground="{DynamicResource TextPrimaryBrush}" />
                                     <TextBlock Text="{Binding Entries.Count, StringFormat=（{0} 个条目）}" FontSize="12"
                                                Foreground="{DynamicResource TextHintBrush}" Margin="8,0,0,0" />
+
                                 </StackPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button x:Name="RenameCatBtn" Content="重命名" Width="72" Height="30" Margin="0,0,8,0"
+                        <Button x:Name="RenameCatBtn" Content="重命名" Width="72" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="RenameCat_Click" IsEnabled="False" />
-                        <Button x:Name="DeleteCatBtn" Content="删除分类" Width="86" Height="30" Margin="0,0,8,0"
+                        <Button x:Name="DeleteCatBtn" Content="删除分类" Width="86" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="DeleteCat_Click" IsEnabled="False" />
-                        <Button Content="清空全部条目" Width="96" Height="30"
+                        <Button Content="清空全部条目" Width="96" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="ClearAll_Click" />
+
                     </StackPanel>
                 </StackPanel>
 
@@ -425,7 +460,7 @@
                     <TextBlock Style="{StaticResource GroupTitle}" Text="关于" />
                     <TextBlock Text="LaunchPad" FontSize="20" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,4" />
-                    <TextBlock Text="轻量级 Windows 应用分类启动器 · v0.1.0" FontSize="12"
+                    <TextBlock Text="轻量级 Windows 应用分类启动器 · v0.95" FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,14" />
                     <TextBlock Text="· 全局快捷键呼出（默认 Ctrl + Space）&#10;· 拖入文件 / 快捷方式即可添加&#10;· 拖动图标排序，拖到另一个图标上可合并为文件夹&#10;· 开机自启、浅色 / 深色主题"
                                FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" LineHeight="20" />

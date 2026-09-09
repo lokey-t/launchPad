@@ -23,10 +23,13 @@ public partial class MainWindow
     private Border _dropMarker;
     private AppFolder _dropFolder;
     private AppItem _dropMergeApp;
+    private AppCategory _dropCategory; // 在分类 Tab 上松开时的目标分类覆盖（优先于 _activeTab.Category）
     private int _dropIndex;
     private bool _validDrop;
     private CategoryTab _pendingCategory;
     private ObservableCollection<AppEntry> _dragPreview;
+    // 拖入“已展开文件夹”时的实时让位预览（仅内部拖动；外部文件无 AppItem 不预览）
+    private ObservableCollection<AppItem> _folderDragPreview;
     private bool _changingCapture;
 
     private void InitializeDragRouting()
@@ -71,17 +74,29 @@ public partial class MainWindow
         _validDrop = false;
         _dropFolder = null;
         _dropMergeApp = null;
+        _dropCategory = null;
         if (_dragGhost != null)
         {
             Canvas.SetLeft(_dragGhost, point.X - _dragGhost.Width / 2);
             Canvas.SetTop(_dragGhost, point.Y - _dragGhost.Height / 2);
         }
         HideDropMarker();
-        var tab = Tabs.FirstOrDefault(t => CategoryTabs.ItemContainerGenerator.ContainerFromItem(t) is FrameworkElement c && Contains(c, point));
+        ScrollCategoryDragEdge(point);
+        var tab = Contains(CategoryStrip,point) ? Tabs.FirstOrDefault(t => CategoryTabs.ItemContainerGenerator.ContainerFromItem(t) is FrameworkElement c && Contains(c, point)) : null;
         if (tab != null && tab != _activeTab)
         {
             ResetDragPreview();
+            ResetFolderPreview();
             _dwellEntry = null;
+            // 在具体分类 Tab 上松开即可落位到该分类（无需等待停留切换），避免移动失败留在原分类
+            if (!tab.IsAll && _dragEntry != null)
+            {
+                _dropFolder = null;
+                _dropMergeApp = null;
+                _dropCategory = tab.Category;
+                _dropIndex = tab.Category.Entries.Count;
+                _validDrop = true;
+            }
             if (_dwellTab != tab) { _dwellTab = tab; _tabDwellStart = now; FlashStatus($"停留 {_app.Config.CategoryHoverSeconds:0.#} 秒切换到“{tab.Name}”"); }
             if (now - _tabDwellStart >= _app.Config.CategoryHoverSeconds * 1000)
             {
@@ -93,7 +108,22 @@ public partial class MainWindow
             return;
         }
         _dwellTab = null;
-        if (tab != null) { ResetDragPreview(); return; }
+        if (tab != null)
+        {
+            ResetDragPreview();
+            ResetFolderPreview();
+            // 在具体分类 Tab 上松开时直接落位到该分类：避免 Tab 切换后光标仍停在 Tab 上，
+            // 最后一帧 TrackDragAt 把 _validDrop 重置为 false 导致移动失败、图标留在原分类。
+            if (!tab.IsAll && _dragEntry != null)
+            {
+                _dropFolder = null;
+                _dropMergeApp = null;
+                _dropCategory = tab.Category;
+                _dropIndex = tab.Category.Entries.Count;
+                _validDrop = true;
+            }
+            return;
+        }
         if (IsFolderOpen && !_folderClosing)
         {
             _dwellEntry = null;
@@ -102,13 +132,25 @@ public partial class MainWindow
                 _dragEnteredFolder = true;
                 if (_dragEntry is AppFolder) return;
                 _dropFolder = _openFolder;
-                _dropIndex = _movingIcons.Count > 0 ? _openFolder.Items.Count : InsertionAt(FolderItems, point);
+                if (_movingIcons.Count > 0)
+                {
+                    _dropIndex = _openFolder.Items.Count;
+                }
+                else
+                {
+                    _dropIndex = InsertionAt(FolderItems, point);
+                    // 内部应用拖入已展开文件夹：其他图标实时平滑让位（排序动画）
+                    if (_dragEntry is AppItem incoming && !_openFolder.Items.Contains(incoming))
+                        PreviewFolderPlacement(_dropIndex);
+                    else
+                        ResetFolderPreview();
+                }
                 _validDrop = true;
-                if (_movingIcons.Count == 0) ShowDropMarker(FolderItems, _dropIndex);
                 AutoScroll(FolderScroll, point);
             }
             else if (_dragEnteredFolder)
             {
+                ResetFolderPreview();
                 CloseFolderWithAnim();
                 _dragEnteredFolder = false;
             }
@@ -242,7 +284,7 @@ public partial class MainWindow
             EntryMoveService.IntoFolder(_app.Config, target, folder, 0);
             return EntryMoveService.IntoFolder(_app.Config, entry, folder, 1);
         }
-        var category = _activeTab?.Category ?? EntryMoveService.Owner(_app.Config, entry) ?? GetImportCategory();
+        var category = _dropCategory ?? _activeTab?.Category ?? EntryMoveService.Owner(_app.Config, entry) ?? GetImportCategory();
         int index = _dropIndex;
         if (_activeTab?.IsAll == true)
         {
@@ -275,6 +317,7 @@ public partial class MainWindow
     private void EndDragSession()
     {
         ResetDragPreview();
+        ResetFolderPreview();
         _dragging = false;
         _externalDragging = false;
         _hoverTimer.Stop();
@@ -286,6 +329,7 @@ public partial class MainWindow
             if (visual != null) DragLayer.Children.Remove(visual);
         _dragGhost = null; _highlight = null; _insertHint = null; _dropMarker = null;
         _dragEntry = null; _pressedEntry = null; _pressed = false; _dragSourceList = null;
+        _dropCategory = null;
         _dwellTab = null; _dwellEntry = null; _validDrop = false;
         DropHint.Visibility = Visibility.Collapsed;
         if (Mouse.Captured == Root) Mouse.Capture(null);
@@ -395,5 +439,78 @@ public partial class MainWindow
         // Convert the preview slot back to the pre-removal index expected by the move service.
         int original = _activeList.IndexOf(_dragEntry);
         _dropIndex = next + (original >= 0 && original <= next ? 1 : 0);
+    }
+
+    /// <summary>
+    /// 拖入已展开文件夹时的实时让位：用“原内容 + 被拖项”的临时集合绑定 FolderItems，
+    /// 被拖项以半透明占位，其他图标从旧位置平滑滑动到新位置（与主网格 PreviewGridPlacement 同构）。
+    /// </summary>
+    private void PreviewFolderPlacement(int insertion)
+    {
+        if (_openFolder == null || _dragEntry is not AppItem dragged) return;
+        if (_folderDragPreview == null)
+        {
+            _folderDragPreview = new ObservableCollection<AppItem>(_openFolder.Items);
+            if (!_folderDragPreview.Contains(dragged)) _folderDragPreview.Add(dragged);
+            FolderItems.ItemsSource = _folderDragPreview;
+            FolderItems.UpdateLayout();
+        }
+        int old = _folderDragPreview.IndexOf(dragged);
+        int next = Math.Clamp(insertion - (old < insertion ? 1 : 0), 0, _folderDragPreview.Count - 1);
+        if (old == next)
+        {
+            if (FolderItems.ItemContainerGenerator.ContainerFromItem(dragged) is FrameworkElement idle)
+                idle.Opacity = .16;
+            int original = _openFolder.Items.IndexOf(dragged);
+            _dropIndex = next + (original >= 0 && original <= next ? 1 : 0);
+            return;
+        }
+        var positions = new Dictionary<AppItem, Point>();
+        foreach (var item in _folderDragPreview)
+            if (FolderItems.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement c)
+                positions[item] = c.TranslatePoint(new Point(), FolderItems);
+        _folderDragPreview.Move(old, next);
+        foreach (var item in _folderDragPreview)
+            if (FolderItems.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement c)
+                c.RenderTransform = Transform.Identity;
+        FolderItems.UpdateLayout();
+        foreach (var item in _folderDragPreview)
+        {
+            if (item == dragged || !positions.TryGetValue(item, out var previous) ||
+                FolderItems.ItemContainerGenerator.ContainerFromItem(item) is not FrameworkElement c) continue;
+            var current = c.TranslatePoint(new Point(), FolderItems);
+            var move = new TranslateTransform(previous.X - current.X, previous.Y - current.Y);
+            c.RenderTransform = move;
+            var duration = TimeSpan.FromMilliseconds(MotionService.Duration(_app.Config, 190));
+            move.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(move.X, 0, duration) { EasingFunction = MotionService.Easing(_app.Config) });
+            move.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(move.Y, 0, duration) { EasingFunction = MotionService.Easing(_app.Config) });
+        }
+        if (FolderItems.ItemContainerGenerator.ContainerFromItem(dragged) is FrameworkElement placeholder)
+            placeholder.Opacity = .16;
+        // 被拖项原本不在文件夹中（original=-1），预览槽位即落位索引
+        int originalInFolder = _openFolder.Items.IndexOf(dragged);
+        _dropIndex = next + (originalInFolder >= 0 && originalInFolder <= next ? 1 : 0);
+    }
+
+    /// <summary>取消文件夹内让位预览，恢复真实 Items 绑定、变换与透明度。</summary>
+    private void ResetFolderPreview()
+    {
+        if (_folderDragPreview == null) return;
+        var dragged = _dragEntry as AppItem;
+        _folderDragPreview = null;
+        if (_openFolder != null)
+        {
+            FolderItems.ItemsSource = _openFolder.Items;
+            FolderItems.UpdateLayout();
+            foreach (var item in _openFolder.Items)
+            {
+                if (item == dragged) continue;
+                if (FolderItems.ItemContainerGenerator.ContainerFromItem(item) is FrameworkElement c)
+                {
+                    c.RenderTransform = Transform.Identity;
+                    c.Opacity = 1;
+                }
+            }
+        }
     }
 }

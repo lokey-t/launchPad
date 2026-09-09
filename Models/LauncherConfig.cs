@@ -6,6 +6,7 @@ namespace LaunchPad.Models;
 /// <summary>分类（Tab 栏中的一个分类）。</summary>
 public class AppCategory : ObservableObject
 {
+    public ThemeProfile ThemeOverride { get; set; }
     private string _name;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
@@ -17,11 +18,24 @@ public class AppCategory : ObservableObject
 
     /// <summary>该分类下的条目（应用与文件夹混排）。</summary>
     public ObservableCollection<AppEntry> Entries { get; set; } = new();
+
+    /// <summary>分类快捷键修饰键（Ctrl=2, Alt=1, Shift=4, Win=8，可组合）；0 表示未设置。</summary>
+    public int HotkeyModifiers { get; set; }
+
+    /// <summary>分类快捷键主键（虚拟键码）；0 表示未设置。</summary>
+    public int HotkeyKey { get; set; }
+
+    /// <summary>快捷键显示文本（如 "Ctrl + Alt + O"），未设置时为空。</summary>
+    [JsonIgnore]
+    public string HotkeyDisplay =>
+        HotkeyModifiers == 0 || HotkeyKey == 0 ? "" : MainWindow.FormatHotkey(HotkeyModifiers, HotkeyKey);
 }
 
 /// <summary>全局配置。</summary>
 public class LauncherConfig
 {
+    public ThemeProfile GlobalTheme { get; set; }
+    public bool ShowThemeButton { get; set; } = true;
     /// <summary>呼出快捷键修饰键：Ctrl=2, Alt=1, Shift=4, Win=8（可组合）。</summary>
     public int HotkeyModifiers { get; set; } = 0x0002; // MOD_CONTROL
 
@@ -65,6 +79,9 @@ public class LauncherConfig
 
     /// <summary>启动应用后自动隐藏主窗口。</summary>
     public bool HideAfterLaunch { get; set; }
+
+    /// <summary>允许分类快捷键在已打开且当前就是该分类时关闭窗口。</summary>
+    public bool AllowCategoryHotkeyToClose { get; set; }
 
     public ObservableCollection<AppCategory> Categories { get; set; } = new();
 

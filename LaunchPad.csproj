@@ -10,7 +10,9 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>LaunchPad</AssemblyName>
     <RootNamespace>LaunchPad</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.95</Version>
+    <AssemblyVersion>0.95.0.0</AssemblyVersion>
+    <FileVersion>0.95.0.0</FileVersion>
     <SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
     <!-- WPF 通过 app.manifest 声明 PerMonitorV2 DPI，抑制 WinForms 分析器的重复建议 -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>

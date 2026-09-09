@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -25,6 +25,8 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _refreshing = false;
         InputBehavior.Apply(this);
+        InitializeCategorySorting();
+        InitializeHoverMagnets();
         Closing += SettingsWindow_Closing;
     }
 
@@ -76,8 +78,10 @@ public partial class SettingsWindow : Window
         AnimationOptimized.IsChecked = c.AnimationMode == "Optimized";
         FolderHoverDelay.Value = c.FolderHoverSeconds;
         CategoryHoverDelay.Value = c.CategoryHoverSeconds;
+        ShowThemeButtonToggle.IsChecked=c.ShowThemeButton;
         GeneralHotkeyHint.Text = $"按 {MainWindow.FormatHotkey(c.HotkeyModifiers, c.HotkeyKey)} 随时呼出或隐藏启动台。";
         AboutPathText.Text = $"配置文件：{ConfigService.ConfigPath}";
+        AllowCatHotkeyCloseToggle.IsChecked = _app.Config.AllowCategoryHotkeyToClose;
         RefreshCategoryList();
         _refreshing = false;
         var selectedMode = new[] { AnimationOff, AnimationFast, AnimationBalanced, AnimationOptimized }
@@ -87,9 +91,16 @@ public partial class SettingsWindow : Window
 
     private void RefreshCategoryList()
     {
+        var selectedHotkey=HotkeyCategoryList.SelectedItem;
+        HotkeyCategoryList.ItemsSource=null;
+        HotkeyCategoryList.ItemsSource=_app.Config.Categories;
         CategoryList.ItemsSource = null;
         CategoryList.ItemsSource = _app.Config.Categories;
-        RenameCatBtn.IsEnabled = DeleteCatBtn.IsEnabled = false;
+        CategoryList.SelectedItem = null;
+        RenameCatBtn.IsEnabled = DeleteCatBtn.IsEnabled = AddCatHotkeyBtn.IsEnabled = false;
+        AddCatHotkeyBtn.Content = "添加快捷键";
+        ClearCatHotkeyBtn.IsEnabled = false;
+        HotkeyCategoryList.SelectedItem=selectedHotkey;
     }
 
     // ---------- 导航 ----------
@@ -103,7 +114,7 @@ public partial class SettingsWindow : Window
         {
             "hotkey" => ("快捷键", "从任何应用，一键回到启动台。"),
             "appearance" => ("外观与动效", "选择适合你的视觉风格与操作节奏。"),
-            "manage" => ("应用管理", "整理分类，让常用工具各就其位。"),
+            "manage" => ("分类管理", "整理分类，让常用工具各就其位。"),
             "about" => ("关于 LaunchPad", "轻量、专注的桌面应用启动器。"),
             _ => ("常规与启动", "设置启动方式，以及启动台的日常行为。")
         };
@@ -180,8 +191,21 @@ public partial class SettingsWindow : Window
         if ((sender as RadioButton)?.Tag is string t)
         {
             _app.Config.Theme = t;
+            var background = _app.Config.GlobalTheme;
+            _app.Config.GlobalTheme = null;
+            var palette = ThemeService.Global(_app.Config);
+            if (background != null) { palette.BackgroundPath=background.BackgroundPath; palette.BackgroundDim=background.BackgroundDim; _app.Config.GlobalTheme=palette; }
             _app.ApplyTheme(t);
+            _app.RefreshMainTheme();
         }
+    }
+
+    private void OpenThemeCenter(object sender,RoutedEventArgs e) => new ThemeCenterWindow(_app,this).ShowDialog();
+    private void ShowThemeButton_Changed(object sender,RoutedEventArgs e)
+    {
+        if(_refreshing || ShowThemeButtonToggle==null) return;
+        _app.Config.ShowThemeButton=ShowThemeButtonToggle.IsChecked==true;
+        _app.RefreshMainTheme();
     }
 
     private void Size_Changed(object sender, RoutedEventArgs e)
@@ -222,6 +246,12 @@ public partial class SettingsWindow : Window
     private void HoverDelay_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
         if (_refreshing || FolderHoverDelay == null || CategoryHoverDelay == null) return;
+        if (!_adjustingHover && sender is Slider slider && slider!=_hoverDragSlider && Mouse.LeftButton==MouseButtonState.Pressed)
+        {
+            _adjustingHover=true;
+            slider.SetCurrentValue(Slider.ValueProperty,SnapHoverValue(slider.Value));
+            _adjustingHover=false;
+        }
         _app.Config.FolderHoverSeconds = FolderHoverDelay.Value;
         _app.Config.CategoryHoverSeconds = CategoryHoverDelay.Value;
     }
@@ -282,13 +312,24 @@ public partial class SettingsWindow : Window
         HotkeyStatus.Text = "点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）";
     }
 
-    // ---------- 应用管理 ----------
+    // ---------- 分类管理 ----------
 
     private void CategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var has = CategoryList.SelectedItem is AppCategory;
+        var cat = CategoryList.SelectedItem as AppCategory;
+        var has = cat != null;
         RenameCatBtn.IsEnabled = has;
         DeleteCatBtn.IsEnabled = has;
+    }
+
+    private void HotkeyCategoryList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var cat=HotkeyCategoryList.SelectedItem as AppCategory;
+        bool has=cat!=null;
+        AddCatHotkeyBtn.IsEnabled = has;
+        bool hasHotkey = has && (cat.HotkeyModifiers != 0 || cat.HotkeyKey != 0);
+        AddCatHotkeyBtn.Content = hasHotkey ? "修改快捷键" : "添加快捷键";
+        ClearCatHotkeyBtn.IsEnabled = hasHotkey;
     }
 
     private void RenameCat_Click(object sender, RoutedEventArgs e)
@@ -313,6 +354,7 @@ public partial class SettingsWindow : Window
             $"删除分类“{cat.Name}”？其中 {cat.Entries.Count} 个条目将一并移除（磁盘文件不受影响）。");
         if (!r) return;
         _app.Config.Categories.Remove(cat);
+        CategoryList.SelectedItem = null;
         RefreshCategoryList();
     }
 
@@ -326,12 +368,80 @@ public partial class SettingsWindow : Window
         RefreshCategoryList();
     }
 
+    // ---------- 分类快捷键 ----------
+
+    private void AddCatHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (HotkeyCategoryList.SelectedItem is not AppCategory cat) return;
+        var result = PromptDialog.CaptureHotkey(this, "设置分类快捷键",
+            $"为分类“{cat.Name}”设置全局快捷键，按下后启动台打开并直接切换到该分类。",
+            cat.HotkeyModifiers, cat.HotkeyKey);
+        if (result == null) return; // 取消
+        var (mods, key) = result.Value;
+        var capturedId = cat.Id;
+
+        if (mods == 0 && key == 0)
+        {
+            // 清除快捷键
+            cat.HotkeyModifiers = 0;
+            cat.HotkeyKey = 0;
+            AddCatHotkeyBtn.Content = "添加快捷键";
+            RefreshCategoryList();
+            HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
+            return;
+        }
+
+        // 冲突检测：与主呼出热键或其他分类热键重复
+        if (mods == (_pendingMods>0?_pendingMods:_app.Config.HotkeyModifiers) && key == (_pendingMods>0?_pendingKey:_app.Config.HotkeyKey))
+        {
+            PromptDialog.Notify(this, "快捷键冲突", "该组合键已被主呼出快捷键占用，请换一个。");
+            return;
+        }
+        var conflict = _app.Config.Categories.FirstOrDefault(c =>
+            c != cat && c.HotkeyModifiers == mods && c.HotkeyKey == key);
+        if (conflict != null)
+        {
+            PromptDialog.Notify(this, "快捷键冲突", $"该组合键已被分类“{conflict.Name}”占用，请换一个。");
+            return;
+        }
+
+        cat.HotkeyModifiers = mods;
+        cat.HotkeyKey = key;
+        AddCatHotkeyBtn.Content = "修改快捷键";
+        RefreshCategoryList();
+        HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
+    }
+
+    private void ClearCatHotkey_Click(object sender, RoutedEventArgs e)
+    {
+        if (HotkeyCategoryList.SelectedItem is not AppCategory cat) return;
+        cat.HotkeyModifiers = 0;
+        cat.HotkeyKey = 0;
+        AddCatHotkeyBtn.Content = "添加快捷键";
+        ClearCatHotkeyBtn.IsEnabled = false;
+        var capturedId = cat.Id;
+        RefreshCategoryList();
+        HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
+    }
+
+    private void AllowCatHotkeyClose_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_refreshing || AllowCatHotkeyCloseToggle == null) return;
+        _app.Config.AllowCategoryHotkeyToClose = AllowCatHotkeyCloseToggle.IsChecked == true;
+    }
+
     // ---------- 完成 ----------
 
     private void Done_Click(object sender, RoutedEventArgs e)
     {
         if (_pendingMods > 0)
         {
+            if (_app.Config.Categories.Any(c=>c.HotkeyModifiers==_pendingMods && c.HotkeyKey==_pendingKey))
+            {
+                NavHotkey.IsChecked=true;
+                HotkeyStatus.Text="该组合键已被分类快捷键占用，请更换。";
+                return;
+            }
             var oldMods = _app.Config.HotkeyModifiers;
             var oldKey = _app.Config.HotkeyKey;
             _app.Config.HotkeyModifiers = _pendingMods;
@@ -351,6 +461,7 @@ public partial class SettingsWindow : Window
         }
 
         _app.SaveConfig();
+        _app.RegisterCategoryHotkeys();
         _pendingMods = -1;
         _refreshing = false;
         _app.RefreshMainWindow();

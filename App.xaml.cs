@@ -17,6 +17,8 @@ public partial class App : Application
     private MainWindow _mainWindow;
     private SettingsWindow _settingsWindow;
     private HotkeyService _hotkey;
+    private readonly List<int> _categoryHotkeyIds = new();
+    private const int CategoryHotkeyBaseId = 0x0D01;
     private System.Windows.Forms.NotifyIcon _tray;
     private bool _isQuitting;
 
@@ -61,6 +63,7 @@ public partial class App : Application
         }
 
         Config = ConfigService.Load();
+        SmoothScrollService.Initialize();
         ApplyTheme(Config.Theme);
 
         _mainWindow = new MainWindow(this);
@@ -97,7 +100,7 @@ public partial class App : Application
     /// <summary>设置改动后刷新主窗口（分类、尺寸、快捷键标签等）。</summary>
     public void RefreshMainWindow()
     {
-        _mainWindow.ReloadFromConfig();
+        _mainWindow?.ReloadFromConfig();
     }
 
     public void ShowMain()
@@ -156,12 +159,51 @@ public partial class App : Application
         _hotkey = new HotkeyService();
         _hotkey.Pressed += () => Dispatcher.Invoke(ToggleMain);
         HotkeyOk = _hotkey.Register(Config.HotkeyModifiers, Config.HotkeyKey);
+        RegisterCategoryHotkeys();
     }
 
-    /// <summary>设置页修改快捷键后重新注册。</summary>
+    /// <summary>注册所有分类的全局快捷键（设置变更后重新调用）。</summary>
+    public void RegisterCategoryHotkeys()
+    {
+        foreach (var id in _categoryHotkeyIds)
+            _hotkey.Unregister(id);
+        _categoryHotkeyIds.Clear();
+
+        int idx = 0;
+        foreach (var cat in Config.Categories)
+        {
+            if (cat.HotkeyModifiers == 0 || cat.HotkeyKey == 0) { idx++; continue; }
+            int id = CategoryHotkeyBaseId + idx;
+            var captured = cat;
+            bool ok = _hotkey.Register(id, cat.HotkeyModifiers, cat.HotkeyKey, () =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    // 若已开启"分类快捷键可关闭窗口"，且窗口已打开且当前就是该分类，则关闭窗口
+                    if (Config.AllowCategoryHotkeyToClose
+                        && _mainWindow.IsVisible && !MotionService.IsClosing(_mainWindow))
+                    {
+                        var active = _mainWindow.GetActiveCategory();
+                        if (active != null && active.Id == captured.Id)
+                        {
+                            _mainWindow.HideAnimated();
+                            return;
+                        }
+                    }
+                    ShowMain();
+                    _mainWindow.SelectCategory(captured);
+                });
+            });
+            if (ok) _categoryHotkeyIds.Add(id);
+            idx++;
+        }
+    }
+
+    /// <summary>设置页修改快捷键后重新注册（主热键 + 分类热键）。</summary>
     public bool ReRegisterHotkey()
     {
         HotkeyOk = _hotkey.Register(Config.HotkeyModifiers, Config.HotkeyKey);
+        RegisterCategoryHotkeys();
         return HotkeyOk;
     }
 
@@ -204,7 +246,10 @@ public partial class App : Application
         };
         if (Resources.MergedDictionaries.Count > 0)
             Resources.MergedDictionaries[0].Source = new Uri($"Themes/{name}.xaml", UriKind.Relative);
+        if (Config != null) ThemeService.Apply(Resources,ThemeService.Global(Config),MotionService.Duration(Config,280));
     }
+
+    public void RefreshMainTheme() => _mainWindow?.RefreshTheme();
 
     private static bool IsSystemDark()
     {

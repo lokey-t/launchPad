@@ -42,6 +42,11 @@ namespace LaunchPad
             _morphClip = new RectangleGeometry(opening ? small : expanded, 12, 12);
             FolderMorphLayer.Clip = _morphClip;
             var thumbs = FindInContainer(_openFolderContainer, "FItems") as ItemsControl;
+            // 缩略格尺寸随图标档位变化，第 5 项及以后从 2×2 预览块下方逐格浮现
+            double cell = ThumbCell, innerSize = ThumbInner, cellPad = (cell - innerSize) / 2.0;
+            Point blockOrigin = thumbs != null
+                ? thumbs.TranslatePoint(new Point(), Root)
+                : new Point(small.X + (small.Width - 2.0 * cell) / 2.0, small.Y + (small.Height - 2.0 * cell) / 2.0);
             for (int i = 0; i < FolderItems.Items.Count; i++)
             {
                 var container = FolderItems.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
@@ -50,8 +55,12 @@ namespace LaunchPad
                 var point = glyph.TranslatePoint(new Point(), FolderCard);
                 var large = new Rect(point.X + expanded.X, point.Y + expanded.Y, glyph.ActualWidth, glyph.ActualHeight);
                 // Entries beyond the 2x2 preview emerge from below the card's clipping boundary.
-                var origin = new Rect(small.X + (small.Width - 64) / 2 + i % 2 * 32 + 2,
-                    i < 4 ? small.Y + 10 + i / 2 * 32 : small.Bottom + (i / 2 - 2) * 32, 28, 28);
+                // i<4 用实际缩略图位置；i>=4 从格子底边下方逐格浮现，确保被裁剪不可见
+                double originY = i < 4
+                    ? blockOrigin.Y + (i / 2) * cell + cellPad
+                    : small.Bottom + (i / 2 - 2) * cell;
+                var origin = new Rect(blockOrigin.X + (i % 2) * cell + cellPad,
+                    originY, innerSize, innerSize);
                 if (i < 4 && thumbs?.ItemContainerGenerator.ContainerFromIndex(i) is FrameworkElement thumbContainer &&
                     FindInContainer(thumbContainer, "ThumbGlyph") is FrameworkElement thumb)
                     origin = new Rect(thumb.TranslatePoint(new Point(), Root), thumb.RenderSize);
