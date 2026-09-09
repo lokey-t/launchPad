@@ -1,0 +1,405 @@
+<Window x:Class="LaunchPad.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:models="clr-namespace:LaunchPad.Models"
+        xmlns:conv="clr-namespace:LaunchPad.Converters"
+        Title="LaunchPad"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        Width="900" Height="640" MinWidth="640" MinHeight="420"
+        ShowInTaskbar="False" ResizeMode="NoResize"
+        WindowStartupLocation="Manual"
+        AllowDrop="True"
+        KeyDown="Window_KeyDown">
+
+    <Window.Resources>
+        <conv:IconConverter x:Key="IconConv" />
+        <conv:CountToBadgeVisibilityConverter x:Key="BadgeVisConv" />
+
+        <!-- 应用格子：图标 + 名称 -->
+        <DataTemplate DataType="{x:Type models:AppItem}">
+            <Border x:Name="Tile" Width="{Binding TileWidth, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Height="{Binding TileHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Background="Transparent" CornerRadius="12" Cursor="Hand"
+                    Tag="{Binding}">
+                <Border.ContextMenu>
+                    <ContextMenu Opened="EntryMenu_Opened" />
+                </Border.ContextMenu>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Width="{Binding IconBox, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Height="{Binding IconBox, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CornerRadius="12" Background="{DynamicResource SubPanelBgBrush}" Padding="6">
+                        <!-- 图标不裁剪：由容器约束，超出格子时按比例缩放完整显示 -->
+                        <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"
+                               TextTrimming="CharacterEllipsis" MaxWidth="88" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 文件夹内应用格子：展开尺寸固定，过渡由卡片渲染变换完成。 -->
+        <DataTemplate x:Key="FolderItemTemplate">
+            <Border Width="{Binding TileIconW, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Height="{Binding TileIconH, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Margin="{Binding TileIconM, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Background="Transparent" CornerRadius="12" Cursor="Hand" Tag="{Binding}">
+                <Border.ContextMenu>
+                    <ContextMenu Opened="EntryMenu_Opened" />
+                </Border.ContextMenu>
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="FolderGlyph" Width="{Binding TileIconInner, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Height="{Binding TileIconInner, RelativeSource={RelativeSource AncestorType=Window}}"
+                            CornerRadius="10" Background="{DynamicResource SubPanelBgBrush}" Padding="4">
+                        <!-- 图标不裁剪：由容器约束，超出时按比例缩放完整显示 -->
+                        <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" FontSize="{Binding TileNameSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Height="{Binding TileNameH, RelativeSource={RelativeSource AncestorType=Window}}"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               HorizontalAlignment="Center" Margin="0,4,0,0"
+                               MaxWidth="72" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 文件夹格子缩略图标模板：固定小尺寸（不绑定窗口属性，打开动画不会污染其他格子的缩略图），无名称行；
+             34×34 紧凑格 + 0.5 边距，2×2 网格中图标间距小（视觉紧凑） -->
+        <DataTemplate x:Key="FolderThumbTemplate">
+            <Border Width="32" Height="32" Margin="0" Background="Transparent" CornerRadius="9" Tag="{Binding}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="ThumbGlyph" Width="28" Height="28" CornerRadius="8"
+                            Background="{DynamicResource SubPanelBgBrush}" Padding="2">
+                        <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- 文件夹格子 = 文件夹展开弹窗的缩小版（同一套结构、两个状态）：
+             未打开时：无边框、紧凑内边距，2×2 固定小缩略（独立缩略模板，不受动画影响）、
+             超出隐藏、角标显示数量、底部小名、标题隐藏；
+             打开时：这个卡片自身放大平移到居中成为弹窗，图标尺寸/间距逐帧变大
+             （间隙从小到大）、列数变多、边框淡入、标题从底部小字变为顶部大字、角标淡出，关闭完全反向。
+             注意：结构与下方 FolderOverlay 弹窗保持同构，修改时必须同步。 -->
+        <DataTemplate DataType="{x:Type models:AppFolder}">
+            <Border x:Name="FBody" Width="{Binding TileWidth, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Height="{Binding TileHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Background="{DynamicResource PanelBgBrush}"
+                    BorderThickness="0" CornerRadius="12" Padding="2" ClipToBounds="True" Cursor="Hand" Tag="{Binding}">
+                <Border.ContextMenu>
+                    <ContextMenu Opened="EntryMenu_Opened" />
+                </Border.ContextMenu>
+                <Grid>
+                    <!-- 顶部标题（展开态显示；缩略态隐藏，打开时从底部名称放大移上来） -->
+                    <TextBlock x:Name="FTitle" Text="{Binding Name}" FontSize="17" FontWeight="600"
+                               Foreground="{DynamicResource TextPrimaryBrush}" HorizontalAlignment="Center"
+                               VerticalAlignment="Top" Margin="0,4,0,0" MaxWidth="300"
+                               TextTrimming="CharacterEllipsis" Opacity="0"
+                               Cursor="Hand" MouseLeftButtonDown="FolderTitle_MouseDown" ToolTip="点击重命名" />
+                    <!-- 图标网格：缩略态 2×2 固定小尺寸、顶部紧凑排布（Rows=2 固定，超出裁剪隐藏，
+                         数量由角标显示）；独立缩略模板，不受打开动画的窗口属性影响。
+                         角标叠加在网格内第 4 个图标（右下格）上 -->
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
+                        <ItemsControl x:Name="FItems" ItemsSource="{Binding ThumbItems}"
+                                      ItemTemplate="{StaticResource FolderThumbTemplate}"
+                                      IsHitTestVisible="False"
+                                      PreviewMouseLeftButtonDown="FolderItems_MouseDown"
+                                      PreviewMouseMove="FolderItems_MouseMove"
+                                      PreviewMouseLeftButtonUp="FolderItems_MouseUp">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="2" Rows="2" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                        <!-- 数量角标：叠在第 4 格（右下格）位置 -->
+                        <Border x:Name="FBadge" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Background="{DynamicResource AccentDeepBrush}" CornerRadius="6"
+                                Padding="3,0" Margin="0,0,6,6"
+                                Visibility="{Binding Items.Count, Converter={StaticResource BadgeVisConv}}">
+                            <TextBlock Text="{Binding Items.Count}" Foreground="White" FontSize="9.5" FontWeight="600" />
+                        </Border>
+                    </Grid>
+                    <!-- 底部名称（格子态显示，打开时淡出） -->
+                    <TextBlock x:Name="FNameBottom" Text="{Binding Name}" FontSize="11"
+                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
+                               VerticalAlignment="Bottom" Margin="0,0,0,3" MaxWidth="88"
+                               TextTrimming="CharacterEllipsis" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+        <Border x:Name="RootCard" Background="{DynamicResource PanelBgBrush}" CornerRadius="16"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Margin="20">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- ═══ 顶栏：分类 Tab + 搜索 + 快捷键 ═══ -->
+            <Grid Grid.Row="0" Margin="18,12,18,10" MouseLeftButtonDown="Header_MouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <ItemsControl x:Name="CategoryTabs" ItemsSource="{Binding Tabs}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Name}" Margin="0,0,8,0"
+                                        Click="Tab_Click" Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                            <Setter Property="Padding" Value="14,6" />
+                                            <Setter Property="FontSize" Value="13" />
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                                                CornerRadius="14" Padding="{TemplateBinding Padding}">
+                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                                            </Trigger>
+                                                            <!-- 已选中的分类保持激活态外观：鼠标放置（含拖拽悬停）不再变浅灰 -->
+                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource TabActiveBgBrush}" />
+                                                            </DataTrigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="Background" Value="{DynamicResource TabActiveBgBrush}" />
+                                                    <Setter Property="Foreground" Value="{DynamicResource TabActiveTextBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button x:Name="AddCategoryBtn" Content="＋" Width="30" Height="30"
+                            Margin="2,0,0,0" Cursor="Hand" Click="AddCategory_Click" FontSize="15"
+                            ToolTip="新建分类">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="{DynamicResource SearchBgBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                                    CornerRadius="15" Width="30" Height="30">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{DynamicResource SearchBgBrush}" CornerRadius="10"
+                            Width="190" Height="32" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="🔍" FontSize="12" Foreground="{DynamicResource TextHintBrush}"
+                                       Margin="10,0,4,0" VerticalAlignment="Center" />
+                            <TextBox x:Name="SearchBox" Grid.Column="1" Background="Transparent"
+                                     BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}"
+                                     FontSize="12" VerticalContentAlignment="Center"
+                                     TextChanged="SearchBox_TextChanged" />
+                            <TextBlock Grid.Column="1" Text="搜索应用" FontSize="12"
+                                       Foreground="{DynamicResource TextHintBrush}"
+                                       VerticalAlignment="Center" IsHitTestVisible="False">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                    </Border>
+
+                    <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8"
+                            Padding="10,3" VerticalAlignment="Center">
+                        <TextBlock x:Name="HotkeyLabel" Text="Ctrl + Space" FontSize="11"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                    </Border>
+
+                    <Button x:Name="SettingsBtn" Content="⚙" Width="30" Height="30" Margin="8,0,0,0"
+                            Cursor="Hand" Click="Settings_Click" FontSize="14"
+                            ToolTip="设置">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="15" Width="30" Height="30">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource HoverBrush}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══ 图标网格 ═══ -->
+            <ScrollViewer x:Name="GridScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled" Padding="14,2,14,6">
+                <ScrollViewer.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="添加应用…" Click="AddApp_Click" />
+                        <MenuItem Header="新建分类" Click="AddCategory_Click" />
+                        <Separator />
+                        <MenuItem Header="设置" Click="Settings_Click" />
+                    </ContextMenu>
+                </ScrollViewer.ContextMenu>
+                <ItemsControl x:Name="IconGrid" Background="Transparent"
+                              PreviewMouseLeftButtonDown="Grid_MouseDown"
+                              PreviewMouseMove="Grid_MouseMove"
+                              PreviewMouseLeftButtonUp="Grid_MouseUp">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel x:Name="Wrap" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- ═══ 底部信息条 ═══ -->
+            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerBrush}">
+                <Grid Margin="18,7,18,7">
+                    <TextBlock x:Name="StatusText" FontSize="11"
+                               Foreground="{DynamicResource TextHintBrush}"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TextBlock Text="拖入文件或快捷方式即可添加应用" FontSize="11"
+                               Foreground="{DynamicResource TextHintBrush}"
+                               HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+
+    <!-- 拖入提示条（顶部悬浮，不遮图标） -->
+    <Border x:Name="DropHint" IsHitTestVisible="False" Visibility="Collapsed"
+            Background="{DynamicResource AccentLightBrush}" CornerRadius="12"
+            BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1.5"
+            Height="40" Margin="20,16,20,0" VerticalAlignment="Top">
+        <TextBlock Text="松开以添加到当前分类" FontSize="12.5" FontWeight="600"
+                   Foreground="{DynamicResource AccentDeepBrush}"
+                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+
+    <!-- 文件夹过渡：固定展开布局，使用同一组真实图标进行渲染变换缩放/平移，避免逐帧重排。 -->
+    <Grid x:Name="FolderOverlay" Visibility="Collapsed" Background="Transparent"
+          IsHitTestVisible="True" PreviewMouseLeftButtonDown="FolderOverlay_MouseDown">
+        <Border x:Name="FolderBackdrop" Background="#50000000" CornerRadius="16" Margin="20" Opacity="0" IsHitTestVisible="False" />
+        <Border x:Name="FolderCard" Background="{DynamicResource PanelBgBrush}" CornerRadius="14"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="0"
+                MaxWidth="580" MaxHeight="440"
+                HorizontalAlignment="Left" VerticalAlignment="Top" ClipToBounds="True">
+            <Grid>
+                <!-- 顶部标题（展开态显示，从底部小名放大移上来；点击可重命名） -->
+                <Grid Margin="0,4,0,0" HorizontalAlignment="Center">
+                    <TextBlock x:Name="FolderTitle" FontSize="17" FontWeight="600"
+                               Foreground="{DynamicResource TextPrimaryBrush}"
+                               TextTrimming="CharacterEllipsis" MaxWidth="300"
+                               Cursor="Hand" MouseLeftButtonDown="FolderTitle_MouseDown"
+                               ToolTip="点击重命名" Opacity="0" />
+                    <TextBox x:Name="FolderRenameBox" Visibility="Collapsed" FontSize="11"
+                             Background="{DynamicResource SearchBgBrush}"
+                             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             Padding="8,1" MinWidth="100" MaxWidth="160"
+                             Height="20" VerticalAlignment="Top"
+                             HorizontalAlignment="Center" VerticalContentAlignment="Center"
+                             LostFocus="FolderRenameBox_LostFocus"
+                             KeyDown="FolderRenameBox_KeyDown" />
+                </Grid>
+                <!-- 应用列表：打开前一次性确定列数，超出高度时滚动。 -->
+                <ScrollViewer x:Name="FolderScroll" MaxHeight="340" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled" Margin="0,6,0,0"
+                              Background="Transparent">
+                    <ItemsControl x:Name="FolderItems" ItemTemplate="{StaticResource FolderItemTemplate}"
+                                  PreviewMouseLeftButtonDown="FolderItems_MouseDown"
+                                  PreviewMouseMove="FolderItems_MouseMove"
+                                  PreviewMouseLeftButtonUp="FolderItems_MouseUp">
+                        <ItemsControl.RenderTransform>
+                            <ScaleTransform x:Name="FolderItemsScale" ScaleX="1" ScaleY="1" />
+                        </ItemsControl.RenderTransform>
+                        <ItemsControl.RenderTransformOrigin>0.5,0.5</ItemsControl.RenderTransformOrigin>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+                <!-- 底部名称（格子态显示，弹窗展开时淡出） -->
+                <TextBlock x:Name="FolderNameBottom" Text="" FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center"
+                           VerticalAlignment="Bottom" Margin="0,0,0,3" MaxWidth="88"
+                           TextTrimming="CharacterEllipsis" Opacity="0" />
+                <!-- 数量角标（格子态显示，弹窗展开时淡出） -->
+                <Border x:Name="FolderBadge" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                        Background="{DynamicResource AccentDeepBrush}" CornerRadius="6"
+                        Padding="3,0" Margin="0,0,4,4" Opacity="0">
+                    <TextBlock x:Name="FolderBadgeText" Text="" Foreground="White" FontSize="9.5" FontWeight="600" />
+                </Border>
+                <!-- 拖出幽灵层（覆盖整个弹窗，不拦截鼠标） -->
+                <Canvas x:Name="FolderDragLayer" IsHitTestVisible="False" />
+            </Grid>
+        </Border>
+        <Canvas x:Name="FolderMorphLayer" IsHitTestVisible="False" />
+    </Grid>
+
+    <!-- 拖拽覆盖层（透明，不拦截鼠标；置于 FolderOverlay 之后，保证拖出弹窗时 ghost 不被遮罩盖住） -->
+    <Canvas x:Name="DragLayer" IsHitTestVisible="False" Opacity="1" />
+    </Grid>
+</Window>

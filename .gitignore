@@ -1,0 +1,19 @@
+# 构建产物
+bin/
+obj/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+
+# 开发过程对比截图（保留在本地，不入库）
+/f0.png
+/f0_lp.png
+/f0_sm.png
+/f_after.png
+/f_last.png
+/i0.png
+/i_open.png
+/out1.png
+/out1_lp.png

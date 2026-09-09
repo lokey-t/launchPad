@@ -1,0 +1,30 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- 深色主题 · 简约扁平 -->
+    <SolidColorBrush x:Key="WindowBgBrush" Color="#1A1B1E" />
+    <SolidColorBrush x:Key="PanelBgBrush" Color="#232429" />
+    <SolidColorBrush x:Key="SubPanelBgBrush" Color="#1E1F23" />
+    <SolidColorBrush x:Key="BorderBrush" Color="#33343A" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#2C2D33" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F2F3F5" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#B0B3BC" />
+    <SolidColorBrush x:Key="TextHintBrush" Color="#7A7D87" />
+
+    <SolidColorBrush x:Key="TabActiveBgBrush" Color="#F2F3F5" />
+    <SolidColorBrush x:Key="TabActiveTextBrush" Color="#1A1B1E" />
+
+    <SolidColorBrush x:Key="AccentBrush" Color="#4E93C9" />
+    <SolidColorBrush x:Key="AccentLightBrush" Color="#2C465C" />
+    <SolidColorBrush x:Key="AccentDeepBrush" Color="#7FBFEA" />
+    <SolidColorBrush x:Key="FolderBrush" Color="#4E93C9" />
+
+    <SolidColorBrush x:Key="HoverBrush" Color="#2C2D33" />
+    <SolidColorBrush x:Key="SearchBgBrush" Color="#2A2B30" />
+    <SolidColorBrush x:Key="ToggleOnBrush" Color="#34C759" />
+    <SolidColorBrush x:Key="ToggleOffBrush" Color="#3A3B41" />
+    <SolidColorBrush x:Key="DragHighlightBrush" Color="#7FBFEA" />
+    <SolidColorBrush x:Key="SliderFillBrush" Color="#4E93C9" />
+
+</ResourceDictionary>
