@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using LaunchPad.Models;
@@ -37,7 +37,9 @@ public static class ThemeService
         {
             result.Name = local.Name; result.BaseTheme = local.BaseTheme;
             result.Surface = local.Surface; result.Text = local.Text; result.Accent = local.Accent;
+
         }
+        if (local.OverrideMaterial ?? local.OverrideColors) result.Material = local.Material;
         if (local.OverrideBackground)
         {
             result.BackgroundPath = local.BackgroundPath; result.BackgroundDim = local.BackgroundDim;
@@ -59,7 +61,8 @@ public static class ThemeService
         var accent = Parse(profile.Accent, "#2E6D99");
         Color Mix(Color a, Color b, double t) => Color.FromRgb((byte)(a.R+(b.R-a.R)*t), (byte)(a.G+(b.G-a.G)*t), (byte)(a.B+(b.B-a.B)*t));
         var colors = new Dictionary<string, Color>();
-        foreach (string key in baseline.Keys) if (baseline[key] is SolidColorBrush brush) colors[key] = brush.Color;
+        foreach (string key in baseline.Keys)
+            if (key is not ("TileSurfaceBrush" or "TileRimBrush") && baseline[key] is SolidColorBrush brush) colors[key] = brush.Color;
         colors["PanelBgBrush"] = surface; colors["WindowBgBrush"] = surface;
         colors["SubPanelBgBrush"] = Mix(surface,text,.035); colors["SearchBgBrush"] = Mix(surface,text,.05);
         colors["TextPrimaryBrush"] = text; colors["TextSecondaryBrush"] = Mix(text,surface,.22); colors["TextHintBrush"] = Mix(text,surface,.4);
@@ -68,6 +71,18 @@ public static class ThemeService
         colors["BorderBrush"] = Mix(surface,text,.14); colors["DividerBrush"] = Mix(surface,text,.08);
         colors["TabActiveBgBrush"] = accent;
         colors["TabActiveTextBrush"] = accent.R*.299+accent.G*.587+accent.B*.114 > 155 ? Color.FromRgb(25,28,35) : Colors.White;
+        if (profile.Material is "Frosted" or "Liquid")
+        {
+            byte alpha = profile.Material == "Frosted" ? (byte)185 : (byte)140;
+            foreach (var key in new[] { "SubPanelBgBrush", "SearchBgBrush", "HoverBrush" })
+            {
+                var color = colors[key]; color.A = alpha; colors[key] = color;
+            }
+        }
+        var folderSurface=surface;
+        folderSurface.A=profile.Material=="Frosted"?(byte)185:profile.Material=="Liquid"?(byte)100:(byte)255;
+        colors["FolderSurfaceBrush"]=folderSurface;
+        colors["FolderBackdropBrush"]=Color.FromArgb(profile.Material=="Frosted"?(byte)45:profile.Material=="Liquid"?(byte)30:(byte)80,0,0,0);
         foreach (var pair in colors)
         {
             var previous = resources[pair.Key] as SolidColorBrush;
@@ -77,5 +92,28 @@ public static class ThemeService
                 next.BeginAnimation(SolidColorBrush.ColorProperty, new ColorAnimation(start,pair.Value,TimeSpan.FromMilliseconds(milliseconds)) { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
             resources[pair.Key] = next;
         }
+        Color Alpha(Color color,byte alpha) { color.A=alpha; return color; }
+        var offsets=new[] { 0d,.35,.72,1d };
+        bool liquid=profile.Material=="Liquid", frosted=profile.Material=="Frosted";
+        var tileColors=liquid
+            ? new[] { Alpha(Colors.White,175),Alpha(surface,105),Alpha(accent,32),Alpha(Colors.White,115) }
+            : Enumerable.Repeat(frosted?Alpha(surface,205):colors["SubPanelBgBrush"],4).ToArray();
+        var rimColors=liquid
+            ? new[] { Alpha(Colors.White,230),Alpha(Colors.White,65),Alpha(accent,32),Alpha(Colors.White,170) }
+            : Enumerable.Repeat(Alpha(Colors.White,frosted?(byte)100:(byte)0),4).ToArray();
+        void SetGradient(string key,Color[] targets)
+        {
+            var old=resources[key] as LinearGradientBrush;
+            var gradient=new LinearGradientBrush { StartPoint=new Point(0,0),EndPoint=new Point(1,1) };
+            for(int i=0;i<targets.Length;i++)
+            {
+                var stop=new GradientStop(targets[i],offsets[i]);
+                if(milliseconds>0 && old?.GradientStops.Count==targets.Length)
+                    stop.BeginAnimation(GradientStop.ColorProperty,new ColorAnimation(old.GradientStops[i].Color,targets[i],TimeSpan.FromMilliseconds(milliseconds)));
+                gradient.GradientStops.Add(stop);
+            }
+            resources[key]=gradient;
+        }
+        SetGradient("TileSurfaceBrush",tileColors); SetGradient("TileRimBrush",rimColors);
     }
 }

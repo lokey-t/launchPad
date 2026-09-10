@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -29,13 +29,15 @@ public sealed class ThemeBackground : Grid, IDisposable
     public Task SetAsync(ThemeProfile profile, double duration) => Dispatcher.InvokeAsync(()=>
     {
         if (_disposed) return Task.CompletedTask;
-        string key=$"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}";
+        profile=profile.Copy();
+        if(profile.Material is "Frosted" or "Liquid") profile.BackgroundPath=null;
+        string key=$"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}";
         return key==_key && _currentRequest!=null ? _currentRequest : (_currentRequest=SetCoreAsync(profile.Copy(),duration));
     }).Task.Unwrap();
 
     private async Task SetCoreAsync(ThemeProfile profile, double duration)
     {
-        var key = $"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}";
+        var key = $"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}";
         if (key == _key) return;
         if (_pending == null && Children.Cast<Layer>().LastOrDefault() is Layer current && current.Path == profile.BackgroundPath)
         {
@@ -55,7 +57,8 @@ public sealed class ThemeBackground : Grid, IDisposable
         {
             if (revision != _revision) { next.Dispose(); return; }
             Children.Remove(next); next.Dispose();
-            next = new Layer(new ThemeProfile { Surface = profile.Surface });
+            var fallback=profile.Copy(); fallback.BackgroundPath=null;
+            next = new Layer(fallback);
             Failed?.Invoke("背景无法加载，已使用主题底色。请重新选择素材或更换视频编码。");
             _key = null; // Allow retry after the file has been repaired.
         }
@@ -98,18 +101,25 @@ public sealed class ThemeBackground : Grid, IDisposable
 
     private sealed class Layer : Grid, IDisposable
     {
-        private readonly ThemeProfile _profile;
+        private ThemeProfile _profile;
         private MediaElement _video;
         private DispatcherTimer _timer;
         private bool _disposed;
         private readonly CancellationTokenSource _cancel = new();
         private TaskCompletionSource<bool> _opened;
         private Border _shade;
+        private FrameworkElement _mediaVisual;
+        private readonly GlassChrome _glass = new();
         public string Path => _profile.BackgroundPath;
         public Layer(ThemeProfile profile)
         {
             _profile = profile;
-            Background = new SolidColorBrush(ThemeService.Parse(profile.Surface,"#FFFFFF"));
+            Background = new SolidColorBrush(SurfaceColor(profile));
+            if(string.IsNullOrWhiteSpace(profile.BackgroundPath))
+            {
+                Children.Add(_glass);
+                ApplyMaterial(profile,0);
+            }
             IsVisibleChanged += (_, _) =>
             {
                 if (_disposed) return;
@@ -119,7 +129,8 @@ public sealed class ThemeBackground : Grid, IDisposable
         }
         public void UpdateAppearance(ThemeProfile profile,double duration)
         {
-            var color=ThemeService.Parse(profile.Surface,"#FFFFFF");
+            _profile=profile.Copy();
+            var color=SurfaceColor(profile);
             var brush=new SolidColorBrush(color);
             if (Background is SolidColorBrush old && duration>0)
                 brush.BeginAnimation(SolidColorBrush.ColorProperty,new ColorAnimation(old.Color,color,TimeSpan.FromMilliseconds(duration)));
@@ -130,6 +141,19 @@ public sealed class ThemeBackground : Grid, IDisposable
                 double opacity=double.IsFinite(profile.BackgroundDim)?Math.Clamp(profile.BackgroundDim,0,1):.35;
                 _shade.BeginAnimation(OpacityProperty,new DoubleAnimation(_shade.Opacity,opacity,TimeSpan.FromMilliseconds(duration)));
             }
+            ApplyMaterial(profile,duration);
+        }
+        private static Color SurfaceColor(ThemeProfile profile)
+        {
+            var color=ThemeService.Parse(profile.Surface,"#FFFFFF");
+            color.A=profile.Material=="Frosted"?(byte)85:profile.Material=="Liquid"?(byte)28:(byte)255;
+            return color;
+        }
+        private void ApplyMaterial(ThemeProfile profile,double duration)
+        {
+            bool glass=profile.Material is "Frosted" or "Liquid";
+            if(glass) _glass.SetProfile(profile);
+            _glass.BeginAnimation(OpacityProperty,new DoubleAnimation(_glass.Opacity,glass?1:0,TimeSpan.FromMilliseconds(duration)));
         }
         public async Task LoadAsync()
         {
@@ -146,6 +170,7 @@ public sealed class ThemeBackground : Grid, IDisposable
                 _video.MediaFailed += (_, e) => _opened.TrySetException(e.ErrorException);
                 _video.MediaEnded += (_, _) => { if (!_disposed) { _video.Position = TimeSpan.Zero; if (IsVisible) _video.Play(); } };
                 Children.Add(_video);
+                _mediaVisual=_video;
                 _video.Source = new Uri(path); _video.Play();
                 await _opened.Task.WaitAsync(TimeSpan.FromSeconds(15));
                 if (!IsVisible) _video.Pause();
@@ -156,6 +181,7 @@ public sealed class ThemeBackground : Grid, IDisposable
                 if (_disposed) return;
                 var image = new Image { Source = frames[0].image, Stretch = Stretch.UniformToFill };
                 Children.Add(image);
+                _mediaVisual=image;
                 int index = 0;
                 _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(frames[0].delay) };
                 _timer.Tick += (_, _) => { index = (index+1)%frames.Count; image.Source = frames[index].image; _timer.Interval = TimeSpan.FromMilliseconds(frames[index].delay); };
@@ -169,12 +195,15 @@ public sealed class ThemeBackground : Grid, IDisposable
                     result.DecodePixelWidth = 1920; result.UriSource = new Uri(path); result.EndInit(); result.Freeze(); return result;
                 });
                 if (_disposed) return;
-                Children.Add(new Image { Source = bitmap, Stretch = Stretch.UniformToFill });
+                _mediaVisual=new Image { Source = bitmap, Stretch = Stretch.UniformToFill };
+                Children.Add(_mediaVisual);
             }
             if (!_disposed)
             {
                 _shade=new Border { Background = new SolidColorBrush(ThemeService.Parse(_profile.Surface,"#FFFFFF")), Opacity = double.IsFinite(_profile.BackgroundDim) ? Math.Clamp(_profile.BackgroundDim,0,1) : .35 };
                 Children.Add(_shade);
+                Children.Add(_glass);
+                ApplyMaterial(_profile,0);
             }
         }
 
@@ -212,7 +241,7 @@ public sealed class ThemeBackground : Grid, IDisposable
         {
             if (_disposed) return;
             _disposed = true; _cancel.Cancel(); _opened?.TrySetCanceled(); _timer?.Stop(); _timer=null;
-            _video?.Close(); _video=null; Children.Clear();
+            _video?.Close(); _video=null; _mediaVisual=null; Children.Clear();
         }
     }
 }

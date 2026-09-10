@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -260,10 +260,51 @@ public partial class SettingsWindow : Window
 
     private void ModifyHotkey_Click(object sender, RoutedEventArgs e)
     {
-        _capturing = true;
-        HotkeyInput.Text = "请按下新的组合键…";
-        HotkeyInput.Focus();
-        HotkeyStatus.Text = "正在监听按键，请按下新的组合键（需包含 Ctrl / Alt / Shift / Win 之一）";
+        _app.SuspendHotkeys();
+        try
+        {
+            var result = PromptDialog.CaptureHotkey(this, "修改全局快捷键",
+                "按下该组合键可随时呼出或隐藏启动台。",
+                _app.Config.HotkeyModifiers, _app.Config.HotkeyKey);
+            if (result == null) return;
+            var (mods, key) = result.Value;
+
+            if (mods == 0 && key == 0)
+            {
+                PromptDialog.Notify(this, "无法清除", "全局呼出快捷键不可清除，请设置一个组合键。");
+                return;
+            }
+
+            var conflict = _app.Config.Categories.FirstOrDefault(c => c.HotkeyModifiers == mods && c.HotkeyKey == key);
+            if (conflict != null)
+            {
+                PromptDialog.Notify(this, "快捷键冲突", "该组合键已被分类“" + conflict.Name + "”占用，请换一个。");
+                return;
+            }
+
+            var oldMods = _app.Config.HotkeyModifiers;
+            var oldKey = _app.Config.HotkeyKey;
+            _app.Config.HotkeyModifiers = mods;
+            _app.Config.HotkeyKey = key;
+            var ok = _app.ReRegisterHotkey();
+            if (!ok)
+            {
+                _app.Config.HotkeyModifiers = oldMods;
+                _app.Config.HotkeyKey = oldKey;
+                _app.ReRegisterHotkey();
+                PromptDialog.Notify(this, "快捷键注册失败", "可能与其他软件冲突，已恢复原快捷键。请更换组合键。");
+                return;
+            }
+
+            _app.SaveConfig();
+            HotkeyInput.Text = MainWindow.FormatHotkey(mods, key);
+            GeneralHotkeyHint.Text = "按 " + MainWindow.FormatHotkey(mods, key) + " 随时呼出或隐藏启动台。";
+            HotkeyStatus.Text = "快捷键已修改并立即生效。";
+        }
+        finally
+        {
+            _app.ReRegisterHotkey();
+        }
     }
 
     private void HotkeyInput_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -373,6 +414,9 @@ public partial class SettingsWindow : Window
     private void AddCatHotkey_Click(object sender, RoutedEventArgs e)
     {
         if (HotkeyCategoryList.SelectedItem is not AppCategory cat) return;
+        _app.SuspendHotkeys();
+        try
+        {
         var result = PromptDialog.CaptureHotkey(this, "设置分类快捷键",
             $"为分类“{cat.Name}”设置全局快捷键，按下后启动台打开并直接切换到该分类。",
             cat.HotkeyModifiers, cat.HotkeyKey);
@@ -388,11 +432,12 @@ public partial class SettingsWindow : Window
             AddCatHotkeyBtn.Content = "添加快捷键";
             RefreshCategoryList();
             HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
+            _app.SaveConfig();
             return;
         }
 
         // 冲突检测：与主呼出热键或其他分类热键重复
-        if (mods == (_pendingMods>0?_pendingMods:_app.Config.HotkeyModifiers) && key == (_pendingMods>0?_pendingKey:_app.Config.HotkeyKey))
+        if (mods == _app.Config.HotkeyModifiers && key == _app.Config.HotkeyKey)
         {
             PromptDialog.Notify(this, "快捷键冲突", "该组合键已被主呼出快捷键占用，请换一个。");
             return;
@@ -410,6 +455,9 @@ public partial class SettingsWindow : Window
         AddCatHotkeyBtn.Content = "修改快捷键";
         RefreshCategoryList();
         HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
+        _app.SaveConfig();
+        }
+        finally { _app.ReRegisterHotkey(); }
     }
 
     private void ClearCatHotkey_Click(object sender, RoutedEventArgs e)
@@ -434,35 +482,8 @@ public partial class SettingsWindow : Window
 
     private void Done_Click(object sender, RoutedEventArgs e)
     {
-        if (_pendingMods > 0)
-        {
-            if (_app.Config.Categories.Any(c=>c.HotkeyModifiers==_pendingMods && c.HotkeyKey==_pendingKey))
-            {
-                NavHotkey.IsChecked=true;
-                HotkeyStatus.Text="该组合键已被分类快捷键占用，请更换。";
-                return;
-            }
-            var oldMods = _app.Config.HotkeyModifiers;
-            var oldKey = _app.Config.HotkeyKey;
-            _app.Config.HotkeyModifiers = _pendingMods;
-            _app.Config.HotkeyKey = _pendingKey;
-            var ok = _app.ReRegisterHotkey();
-            if (!ok)
-            {
-                _app.Config.HotkeyModifiers = oldMods;
-                _app.Config.HotkeyKey = oldKey;
-                var restored = _app.ReRegisterHotkey();
-                HotkeyStatus.Text = "快捷键注册失败：可能与其他软件冲突，请换一个组合键。";
-                PromptDialog.Notify(this, "快捷键注册失败", restored
-                    ? "快捷键注册失败，已恢复原快捷键。请更换组合键。"
-                    : "新旧快捷键均注册失败，请通过托盘打开设置并更换组合键。");
-                return;
-            }
-        }
-
         _app.SaveConfig();
         _app.RegisterCategoryHotkeys();
-        _pendingMods = -1;
         _refreshing = false;
         _app.RefreshMainWindow();
         Close();

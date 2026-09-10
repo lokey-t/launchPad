@@ -207,6 +207,9 @@ public partial class App : Application
         return HotkeyOk;
     }
 
+    /// <summary>临时注销所有全局热键（打开快捷键捕获弹窗时调用，避免捕获过程中触发热键）。</summary>
+    public void SuspendHotkeys() => _hotkey.UnregisterAll();
+
     // ---------- 托盘 ----------
 
     private void SetupTray()

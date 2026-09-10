@@ -1,9 +1,11 @@
-namespace LaunchPad.Models;
+﻿namespace LaunchPad.Models;
 
 public class ThemeProfile
 {
     public string Name { get; set; } = "自定义";
     public string BaseTheme { get; set; } = "Light";
+    public string Material { get; set; } = "Solid";
+    public bool? OverrideMaterial { get; set; }
     public string Accent { get; set; } = "#2E6D99";
     public string Surface { get; set; } = "#FFFFFF";
     public string Text { get; set; } = "#1F2328";

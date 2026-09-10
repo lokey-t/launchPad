@@ -1,4 +1,4 @@
-# LaunchPad v0.95
+﻿# LaunchPad v0.95
 
 [中文](README.md) · **English**
 
@@ -33,6 +33,8 @@ Open from the main window or Settings → Appearance & Motion. The main-window t
 2. Pick Cloud, Midnight, Sea Salt, Moss, Dusk, or Rose, or edit surface, text, and accent colors.
 3. Upload a background and adjust its overlay. Supported formats include PNG / JPG / BMP, GIF, and MP4 / WMV / AVI / MOV / M4V video. Video playback depends on Windows decoding support.
 4. Apply and save. Category colors and backgrounds independently override or inherit global settings.
+
+Window Material is independent of the palette: Normal, Frosted Glass, or Liquid Glass, with separate per-category inheritance. Glass uses the Windows compositor to blur live desktop and window content behind the launcher while keeping text and icons sharp. Liquid mode combines lighter tint and reflective highlights as an approximation, not Apple’s native refraction. Background upload, background override, and overlay controls are disabled while glass is active; existing media is retained and restored in Normal mode. Move the Theme Center window to see the live material preview. Effects depend on Windows composition and transparency support.
 
 Colors and backgrounds transition smoothly between categories. Videos loop silently; changing colors or the overlay for the same video preserves playback. GIF and video playback pause while hidden. Invalid media produces a message and falls back to the theme surface.
 

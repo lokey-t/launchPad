@@ -27,7 +27,7 @@
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border Width="{Binding IconBox, RelativeSource={RelativeSource AncestorType=Window}}"
                             Height="{Binding IconBox, RelativeSource={RelativeSource AncestorType=Window}}"
-                            CornerRadius="12" Background="{DynamicResource SubPanelBgBrush}" Padding="6">
+                            CornerRadius="12" Background="{DynamicResource TileSurfaceBrush}" BorderBrush="{DynamicResource TileRimBrush}" BorderThickness="1" Padding="5">
                         <!-- 图标不裁剪：由容器约束，超出格子时按比例缩放完整显示 -->
                         <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
                     </Border>
@@ -51,7 +51,7 @@
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Border x:Name="FolderGlyph" Width="{Binding TileIconInner, RelativeSource={RelativeSource AncestorType=Window}}"
                             Height="{Binding TileIconInner, RelativeSource={RelativeSource AncestorType=Window}}"
-                            CornerRadius="10" Background="{DynamicResource SubPanelBgBrush}" Padding="4">
+                            CornerRadius="10" Background="{DynamicResource TileSurfaceBrush}" BorderBrush="{DynamicResource TileRimBrush}" BorderThickness="1" Padding="3">
                         <!-- 图标不裁剪：由容器约束，超出时按比例缩放完整显示 -->
                         <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
                     </Border>
@@ -75,7 +75,7 @@
                             Width="{Binding ThumbInner, RelativeSource={RelativeSource AncestorType=Window}}"
                             Height="{Binding ThumbInner, RelativeSource={RelativeSource AncestorType=Window}}"
                             CornerRadius="8"
-                            Background="{DynamicResource SubPanelBgBrush}" Padding="2">
+                            Background="{DynamicResource TileSurfaceBrush}" BorderBrush="{DynamicResource TileRimBrush}" BorderThickness="1" Padding="1">
                         <Image Stretch="Uniform"><Image.Source><MultiBinding Converter="{StaticResource IconConv}"><Binding /><Binding Path="CustomIconPath" /></MultiBinding></Image.Source></Image>
                     </Border>
                 </StackPanel>
@@ -353,8 +353,8 @@
     <!-- 文件夹过渡：固定展开布局，使用同一组真实图标进行渲染变换缩放/平移，避免逐帧重排。 -->
     <Grid x:Name="FolderOverlay" Visibility="Collapsed" Background="Transparent"
           IsHitTestVisible="True" PreviewMouseLeftButtonDown="FolderOverlay_MouseDown">
-        <Border x:Name="FolderBackdrop" Background="#50000000" CornerRadius="16" Margin="20" Opacity="0" IsHitTestVisible="False" />
-        <Border x:Name="FolderCard" Background="{DynamicResource PanelBgBrush}" CornerRadius="14"
+        <Border x:Name="FolderBackdrop" Background="{DynamicResource FolderBackdropBrush}" CornerRadius="16" Margin="20" Opacity="0" IsHitTestVisible="False" />
+        <Border x:Name="FolderCard" Background="{DynamicResource FolderSurfaceBrush}" CornerRadius="14"
                 BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="0"
                 MaxWidth="580" MaxHeight="440"
                 HorizontalAlignment="Left" VerticalAlignment="Top" ClipToBounds="True">
