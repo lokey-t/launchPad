@@ -10,13 +10,40 @@ namespace LaunchPad.Services;
 /// <summary>Compositor blur samples the windows behind this HWND, not application media.</summary>
 public sealed class WindowMaterialService : IDisposable
 {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Window,WindowMaterialService> Instances=new();
+    public static ThemeProfile ForWindow(Window window,LauncherConfig config) => window!=null && Instances.TryGetValue(window,out var service) ? service._profile.Copy() : ThemeService.Global(config);
+    public static WindowMaterialService Attach(Window window,System.Windows.Controls.Border card,Func<ThemeProfile> profile)
+    {
+        var service=new WindowMaterialService(window) { Surface=card };
+        void Refresh()
+        {
+            var current=profile();
+            ThemeService.Apply(window.Resources,current,0);
+            if(current.Material=="Frosted")
+            {
+                // Nested panels should not hide the native glass with opaque fills.
+                window.Resources["PanelBgBrush"]=new SolidColorBrush(Color.FromArgb(8,255,255,255));
+                window.Resources["SubPanelBgBrush"]=new SolidColorBrush(Color.FromArgb(12,255,255,255));
+            }
+            card.Background=new SolidColorBrush(ThemeService.GlassSurfaceColor(current));
+            service.Apply(current);
+        }
+        service.RefreshSurface=Refresh;
+        window.Loaded+=(_,_)=>Refresh();
+        window.IsVisibleChanged+=(_,_)=> { if(window.IsVisible) Refresh(); };
+        Refresh(); return service;
+    }
+    public Action RefreshSurface { get; private set; }
     private readonly Window _window;
     private ThemeProfile _profile = new();
     private DispatcherTimer _transition;
-    private uint _tint;
+    private double _strength;
     private HwndSource _backdrop;
+    private NativeGaussianBackdrop _gaussian;
+    public event Action Failed;
     private Rect _bounds=Rect.Empty;
     private int _clipWidth=-1,_clipHeight=-1,_clipDiameter=-1;
+    private System.Windows.CornerRadius? _originalCorners;
     private bool _shown;
     private byte _alpha=255;
     public FrameworkElement Surface { get; set; }
@@ -24,6 +51,7 @@ public sealed class WindowMaterialService : IDisposable
     public WindowMaterialService(Window window)
     {
         _window=window;
+        Instances.Remove(window); Instances.Add(window,this);
         window.SourceInitialized+=Initialized;
         window.Closed+=Closed;
         CompositionTarget.Rendering+=Rendering;
@@ -37,79 +65,64 @@ public sealed class WindowMaterialService : IDisposable
     {
         _transition?.Stop(); _transition=null;
         _profile=profile.Copy();
-        if(new WindowInteropHelper(_window).Handle==IntPtr.Zero) return false;
-        bool requested=profile.Material is "Frosted" or "Liquid";
-        if(requested && _backdrop==null) CreateBackdrop();
-        if(_backdrop==null) return !requested;
-        var handle=_backdrop.Handle;
-        bool glass=profile.Material is "Frosted" or "Liquid";
-        var color=ThemeService.Parse(profile.Surface,"#FFFFFF");
-        var policy=new AccentPolicy
+        if(Surface is System.Windows.Controls.Border card)
         {
-            State=glass?4:0,
-            Flags=2,
-            GradientColor=(uint)((profile.Material=="Frosted"?100:24)<<24 | color.B<<16 | color.G<<8 | color.R)
-        };
-        var start=_tint;
-        var target=policy.GradientColor;
-        if(duration>0 && IsActive)
+            _originalCorners??=card.CornerRadius;
+            // DWM uses an 8-DIP round corner. Match the foreground to avoid two arcs.
+            card.CornerRadius=profile.Material=="Frosted"?new CornerRadius(8):_originalCorners.Value;
+        }
+        if(new WindowInteropHelper(_window).Handle==IntPtr.Zero) return false;
+        bool requested=profile.Material == "Frosted";
+        if(requested && _backdrop==null)
+        {
+            try { CreateBackdrop(); }
+            catch(Exception error) when(error is COMException or EntryPointNotFoundException or DllNotFoundException)
+            {
+                ReleaseBackdrop(); return false;
+            }
+        }
+        if(_backdrop==null) return !requested;
+        bool glass=requested;
+        double start=_strength, target=glass?ThemeService.GlassStrength(profile):0;
+        if(glass) IsActive=true;
+        if(duration>0 && (IsActive || glass))
         {
             var started=System.Diagnostics.Stopwatch.StartNew();
-            _transition=new DispatcherTimer { Interval=TimeSpan.FromMilliseconds(25) };
+            _transition=new DispatcherTimer { Interval=TimeSpan.FromMilliseconds(16) };
             _transition.Tick+=(_,_)=>
             {
                 double t=Math.Min(1,started.Elapsed.TotalMilliseconds/duration);
-                uint blended=0;
-                for(int shift=0;shift<32;shift+=8)
-                {
-                    var a=(start>>shift)&255; var b=(target>>shift)&255;
-                    blended|=(uint)(a+(b-(double)a)*t)<<shift;
-                }
-                if(glass) { policy.GradientColor=blended; SetPolicy(handle,policy); }
+                _strength=start+(target-start)*t;
                 if(t>=1)
                 {
                     _transition?.Stop(); _transition=null;
-                    if(!glass) { SetPolicy(handle,policy); SyncBackdrop(); }
+                    if(!glass) IsActive=false;
                 }
+                SyncBackdrop();
             };
             _transition.Start();
-            return true;
         }
-        bool applied=SetPolicy(handle,policy);
-        SyncBackdrop();
-        return applied;
-    }
-    private bool SetPolicy(IntPtr handle,AccentPolicy policy)
-    {
-        bool glass=policy.State!=0;
-        var memory=Marshal.AllocHGlobal(Marshal.SizeOf<AccentPolicy>());
-        try
+        else
         {
-            Marshal.StructureToPtr(policy,memory,false);
-            var data=new CompositionData { Attribute=19,Data=memory,Size=Marshal.SizeOf<AccentPolicy>() };
-            bool success=SetWindowCompositionAttribute(handle,ref data)!=0;
-            IsActive=glass&&success;
-            _tint=policy.GradientColor;
-            return !glass||success;
+            _strength=target;
+            if(!glass) IsActive=false;
+            SyncBackdrop();
         }
-        catch(EntryPointNotFoundException) { IsActive=false; return !glass; }
-        finally { Marshal.FreeHGlobal(memory); }
+        return true;
     }
     private void CreateBackdrop()
     {
-        // A separate, non-layered composition surface confines native acrylic to the
-        // visible card. Applying acrylic to the WPF HWND also paints its shadow gutter.
+        // Keep the composition target inside the visible card, excluding its shadow gutter.
         var parameters=new HwndSourceParameters("LaunchPad material")
         {
             WindowStyle=unchecked((int)0x80000000),
-            ExtendedWindowStyle=0x80|0x20,
+            ExtendedWindowStyle=0x08000000|0x80|0x20,
             Width=1,Height=1
         };
         _backdrop=new HwndSource(parameters);
         _backdrop.CompositionTarget.BackgroundColor=Colors.Transparent;
         _backdrop.RootVisual=new DrawingVisual();
-        // DWMWCP_ROUND (2).  A value of 1 means DWMWCP_DONOTROUND and made
-        // the native glass surface visibly square beneath the WPF card.
+        // Use the same system corner as the foreground surface.
         int corners=2; DwmSetWindowAttribute(_backdrop.Handle,33,ref corners,sizeof(int));
         _backdrop.AddHook((IntPtr hwnd,int message,IntPtr wParam,IntPtr lParam,ref bool handled)=>
         {
@@ -119,12 +132,13 @@ public sealed class WindowMaterialService : IDisposable
         });
         var margins=new Margins { Left=-1,Right=-1,Top=-1,Bottom=-1 };
         DwmExtendFrameIntoClientArea(_backdrop.Handle,ref margins);
+        _gaussian=new NativeGaussianBackdrop(_backdrop.Handle);
     }
     private void SyncBackdrop()
     {
         if(_backdrop==null) return;
         var handle=_backdrop.Handle;
-        if(!IsActive || !_window.IsVisible || _window.WindowState==WindowState.Minimized || _window.Opacity<=.001)
+        if(!IsActive || _strength<=.001 || !_window.IsVisible || _window.WindowState==WindowState.Minimized || _window.Opacity<=.001)
         {
             if(_shown) { ShowWindow(handle,0); _shown=false; }
             return;
@@ -153,14 +167,17 @@ public sealed class WindowMaterialService : IDisposable
             }
             _bounds=bounds; _shown=true;
         }
-        byte alpha=(byte)Math.Clamp(_window.Opacity*255,0,255);
-        if(alpha!=_alpha)
-        {
-            // Constant-alpha fading preserves the native surface; per-pixel WPF
-            // transparency is kept on the foreground window only.
-            SetWindowLongPtr(handle,-20,new IntPtr(0x80|0x20|0x80000));
-            SetLayeredWindowAttributes(handle,0,alpha,2); _alpha=alpha;
-        }
+        try { _gaussian.Update(clipWidth,clipHeight,(float)(60*_strength*_strength*scale),(float)_window.Opacity); }
+        catch(COMException) { ReleaseBackdrop(); Failed?.Invoke(); return; }
+        _alpha=(byte)Math.Clamp(_window.Opacity*255,0,255);
+    }
+    private void ReleaseBackdrop()
+    {
+        _transition?.Stop(); _transition=null;
+        _gaussian?.Dispose(); _gaussian=null;
+        _backdrop?.Dispose(); _backdrop=null;
+        IsActive=false; _shown=false; _bounds=Rect.Empty;
+        _clipWidth=_clipHeight=_clipDiameter=-1;
     }
     public void Dispose()
     {
@@ -169,7 +186,7 @@ public sealed class WindowMaterialService : IDisposable
         _window.Closed-=Closed;
         CompositionTarget.Rendering-=Rendering;
         _window.IsVisibleChanged-=VisibilityChanged;
-        _backdrop?.Dispose(); _backdrop=null;
+        ReleaseBackdrop();
     }
     [StructLayout(LayoutKind.Sequential)]
     private struct Margins { public int Left,Right,Top,Bottom; }
@@ -183,20 +200,10 @@ public sealed class WindowMaterialService : IDisposable
     private static extern bool ShowWindow(IntPtr hwnd,int command);
     [DllImport("user32.dll")]
     private static extern IntPtr GetWindow(IntPtr hwnd,uint command);
-    [DllImport("user32.dll",EntryPoint="SetWindowLongPtrW")]
-    private static extern IntPtr SetWindowLongPtr(IntPtr hwnd,int index,IntPtr value);
-    [DllImport("user32.dll")]
-    private static extern bool SetLayeredWindowAttributes(IntPtr hwnd,uint color,byte alpha,uint flags);
-    [StructLayout(LayoutKind.Sequential)]
-    private struct AccentPolicy { public int State,Flags; public uint GradientColor; public int AnimationId; }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct CompositionData { public int Attribute; public IntPtr Data; public int Size; }
     [DllImport("gdi32.dll")]
     private static extern IntPtr CreateRoundRectRgn(int left,int top,int right,int bottom,int width,int height);
     [DllImport("gdi32.dll")]
     private static extern bool DeleteObject(IntPtr obj);
     [DllImport("user32.dll")]
     private static extern int SetWindowRgn(IntPtr hwnd,IntPtr region,bool redraw);
-    [DllImport("user32.dll")]
-    private static extern int SetWindowCompositionAttribute(IntPtr hwnd,ref CompositionData data);
 }

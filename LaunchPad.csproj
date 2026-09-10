@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <AssemblyName>LaunchPad</AssemblyName>
     <RootNamespace>LaunchPad</RootNamespace>
     <Version>0.95</Version>
@@ -22,6 +23,10 @@
     <!-- 避免 WPF + WinForms 的全局 using 命名冲突（WinForms/System.Drawing 类型在代码中显式引用） -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
   </ItemGroup>
 
 </Project>

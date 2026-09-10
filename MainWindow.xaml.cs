@@ -72,7 +72,7 @@ namespace LaunchPad
 
 		private double _iconBox = 64.0;
 
-		private double _tileWidth = 92.0;
+		private double _tileWidth = 82.0;
 
 		private double _tileHeight = 112.0;
 
@@ -352,6 +352,9 @@ namespace LaunchPad
 			InitializeComponent();
 			InitializeThemeBackground();
             CategoryStrip.LostMouseCapture+=(_,e)=> { if(e.OriginalSource==CategoryStrip && _panPressed) EndCategoryPan(false); };
+            // 内容可滚动时在底部信息条上方显示轻微阴影，滚动条消失时淡出
+            GridScroll.ScrollChanged += (_, _) => UpdateBottomBarShadow();
+            UpdateBottomBarShadow();
 			base.DataContext = this;
             InitializeDragRouting();
             InputBehavior.Apply(this);
@@ -542,20 +545,20 @@ namespace LaunchPad
 				if (iconSize == "Large")
 				{
 					IconBox = 80.0;
-					TileWidth = 110.0;
+					TileWidth = 102.0;
 					TileHeight = 132.0;
 				}
 				else
 				{
 					IconBox = 64.0;
-					TileWidth = 92.0;
+					TileWidth = 82.0;
 					TileHeight = 112.0;
 				}
 			}
 			else
 			{
 				IconBox = 52.0;
-				TileWidth = 78.0;
+				TileWidth = 68.0;
 				TileHeight = 96.0;
 			}
 			// 文件夹 2×2 缩略格 = 应用图标框的一半，保证两行标题水平对齐
@@ -635,6 +638,14 @@ namespace LaunchPad
 			}
 		}
 
+
+		private void UpdateBottomBarShadow()
+		{
+			if (BottomShadowBar == null || GridScroll == null) return;
+			bool show = GridScroll.ScrollableHeight > 0;
+			BottomShadowBar.BeginAnimation(System.Windows.UIElement.OpacityProperty,
+				new System.Windows.Media.Animation.DoubleAnimation(show ? 1.0 : 0.0, TimeSpan.FromMilliseconds(180)));
+		}
 		private void Tab_Click(object sender, RoutedEventArgs e)
 		{
 			if ((sender as FrameworkElement)?.DataContext is CategoryTab tab)
@@ -677,6 +688,13 @@ namespace LaunchPad
         public void HideAnimated()
         {
             if (_dragging) EndDragSession();
+            // “上次位置”模式：隐藏前记录当前窗口位置并持久化，下次在同一位置弹出
+            if (_app.Config.Position == "Last")
+            {
+                _app.Config.LastLeft = Left;
+                _app.Config.LastTop = Top;
+                _app.SaveConfig();
+            }
             MotionService.Hide(this, _app.Config, () => { if (IsFolderOpen) HideFolderNow(); Hide(); });
         }
 

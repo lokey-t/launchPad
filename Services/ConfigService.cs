@@ -32,6 +32,10 @@ public static class ConfigService
                         c.Entries.Any(e => e == null || e.Name == null ||
                             e is AppFolder f && (f.Items == null || f.Items.Any(i => i == null)))))
                     throw new JsonException("配置结构无效。");
+                // 液态玻璃材质已下线，存量配置统一迁移为磨砂玻璃
+                if (cfg.GlobalTheme?.Material == "Liquid") cfg.GlobalTheme.Material = "Frosted";
+                foreach (var cat in cfg.Categories)
+                    if (cat.ThemeOverride?.Material == "Liquid") cat.ThemeOverride.Material = "Frosted";
                 return cfg;
             }
         }

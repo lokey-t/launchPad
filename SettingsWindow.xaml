@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:LaunchPad.Converters"
         Title="LaunchPad 设置" Width="860" Height="680" FontFamily="Microsoft YaHei UI"
+        Icon="/Assets/app.ico"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         WindowStartupLocation="CenterScreen" ShowInTaskbar="False" ResizeMode="NoResize">
     <Window.Resources>
@@ -207,9 +208,9 @@
     </Window.Resources>
     <Border x:Name="SettingsCard" Background="{DynamicResource PanelBgBrush}" CornerRadius="22" Margin="18"
             BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" MouseLeftButtonDown="Content_MouseDown">
-        <Grid>
+        <Grid x:Name="SettingsSurfaceContent">
             <Grid.ColumnDefinitions><ColumnDefinition Width="192" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-            <Border Background="{DynamicResource SubPanelBgBrush}" CornerRadius="22,0,0,22">
+            <Border Background="{DynamicResource SubPanelBgBrush}" CornerRadius="0">
                 <Grid Margin="18,28,18,24">
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <StackPanel Margin="10,0,0,30">
@@ -269,6 +270,21 @@
                         <TextBlock Style="{StaticResource RowLabel}" Text="单击启动应用（关闭则为双击启动）" />
                         <ToggleButton x:Name="SingleClickToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="LaunchMode_Changed" Unchecked="LaunchMode_Changed" />
+                    </Grid>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource RowLabel}" Text="弹窗位置" Margin="0,0,20,0" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <RadioButton x:Name="PosCenter" Style="{StaticResource OptionCard}" Content="屏幕居中"
+                                         GroupName="pos" Tag="Center" Checked="Pos_Changed" />
+                            <RadioButton x:Name="PosCursor" Style="{StaticResource OptionCard}" Content="跟随鼠标"
+                                         GroupName="pos" Tag="Cursor" Checked="Pos_Changed" />
+                            <RadioButton x:Name="PosLast" Style="{StaticResource OptionCard}" Content="上次位置"
+                                         GroupName="pos" Tag="Last" Checked="Pos_Changed" />
+                        </StackPanel>
                     </Grid>
 
                     <TextBlock Style="{StaticResource GroupTitle}" Text="关闭方式" Margin="0,6,0,6" />
@@ -398,19 +414,6 @@
                         </StackPanel>
                     </Grid>
 
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="弹窗位置" Margin="0,0,20,0" />
-                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <RadioButton x:Name="PosCenter" Style="{StaticResource OptionCard}" Content="屏幕居中"
-                                         GroupName="pos" Tag="Center" Checked="Pos_Changed" />
-                            <RadioButton x:Name="PosCursor" Style="{StaticResource OptionCard}" Content="跟随鼠标"
-                                         GroupName="pos" Tag="Cursor" Checked="Pos_Changed" />
-                        </StackPanel>
-                    </Grid>
                     <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,14,0,20" />
                     <TextBlock Text="动画过渡" Style="{StaticResource GroupTitle}" />
                     <TextBlock Text="应用于窗口、分类、文件夹与拖动让位。" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,14" />

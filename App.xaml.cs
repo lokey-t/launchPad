@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Threading;
 using LaunchPad.Models;
 using LaunchPad.Services;
@@ -142,6 +142,21 @@ public partial class App : Application
             nl = Math.Max(area.Left / scaleX, Math.Min(nl, area.Right / scaleX - w.Width));
             nt = Math.Max(area.Top / scaleY, Math.Min(nt, area.Bottom / scaleY - w.Height));
         }
+        else if (Config.Position == "Last" && Config.LastLeft.HasValue && Config.LastTop.HasValue)
+        {
+            nl = Config.LastLeft.Value;
+            nt = Config.LastTop.Value;
+            // 上次位置已脱离所有屏幕（显示器拔插/分辨率变化）时回退居中，避免窗口消失
+            var vs = System.Windows.Forms.SystemInformation.VirtualScreen;
+            bool inside = nl + w.Width > vs.Left && nl < vs.Right
+                       && nt + w.Height > vs.Top && nt < vs.Bottom;
+            if (!inside)
+            {
+                var fallback = SystemParameters.WorkArea;
+                nl = fallback.Left + (fallback.Width - w.Width) / 2;
+                nt = fallback.Top + (fallback.Height - w.Height) / 2;
+            }
+        }
         else
         {
             var area = SystemParameters.WorkArea;
@@ -214,9 +229,12 @@ public partial class App : Application
 
     private void SetupTray()
     {
+        System.Drawing.Icon trayIcon;
+        var res = System.Windows.Application.GetResourceStream(new Uri("Assets/app.ico", UriKind.Relative));
+        trayIcon = new System.Drawing.Icon(res.Stream);
         _tray = new System.Windows.Forms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = trayIcon,
             Text = "LaunchPad 应用启动器",
             Visible = true
         };
@@ -250,6 +268,7 @@ public partial class App : Application
         if (Resources.MergedDictionaries.Count > 0)
             Resources.MergedDictionaries[0].Source = new Uri($"Themes/{name}.xaml", UriKind.Relative);
         if (Config != null) ThemeService.Apply(Resources,ThemeService.Global(Config),MotionService.Duration(Config,280));
+        _settingsWindow?.RefreshMaterial();
     }
 
     public void RefreshMainTheme() => _mainWindow?.RefreshTheme();

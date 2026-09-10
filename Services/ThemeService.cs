@@ -39,7 +39,8 @@ public static class ThemeService
             result.Surface = local.Surface; result.Text = local.Text; result.Accent = local.Accent;
 
         }
-        if (local.OverrideMaterial ?? local.OverrideColors) result.Material = local.Material;
+        if (local.OverrideMaterial ?? local.OverrideColors) { result.Material = local.Material; result.GlassOpacity=local.GlassOpacity; result.GlassBlurStrength=local.GlassBlurStrength; result.GlassColorDepth=local.GlassColorDepth; }
+        if(local.OverrideIcons) { result.IconBackground=local.IconBackground;result.IconOpacity=local.IconOpacity;result.IconBorderMode=local.IconBorderMode;result.IconBorderColor=local.IconBorderColor;result.IconBorderWidth=local.IconBorderWidth;result.IconShadowDirection=local.IconShadowDirection;result.IconShadowDepth=local.IconShadowDepth;result.IconShadowStrength=local.IconShadowStrength; }
         if (local.OverrideBackground)
         {
             result.BackgroundPath = local.BackgroundPath; result.BackgroundDim = local.BackgroundDim;
@@ -47,6 +48,18 @@ public static class ThemeService
         return result;
     }
 
+    public static double GlassStrength(ThemeProfile profile)
+    {
+        double value=profile.GlassBlurStrength>=0?profile.GlassBlurStrength:profile.GlassOpacity;
+        return double.IsFinite(value) && value>=0 ? Math.Clamp(value,0,1) : .7;
+    }
+    public static double GlassDepth(ThemeProfile profile) => double.IsFinite(profile.GlassColorDepth) ? Math.Clamp(profile.GlassColorDepth,0,1) : .7;
+    public static Color GlassSurfaceColor(ThemeProfile profile)
+    {
+        var color=Parse(profile.Surface,"#FFFFFF");
+        color.A=profile.Material=="Frosted"?(byte)Math.Max(1,Math.Round(255*GlassDepth(profile))): (byte)255;
+        return color;
+    }
     public static Color Parse(string value, string fallback)
     {
         try { return (Color)ColorConverter.ConvertFromString(value); }
@@ -55,6 +68,7 @@ public static class ThemeService
 
     public static void Apply(ResourceDictionary resources, ThemeProfile profile, double milliseconds)
     {
+        resources["IconAppearanceProfile"]=profile.Copy();
         var baseline = new ResourceDictionary { Source = new Uri($"pack://application:,,,/LaunchPad;component/Themes/{(profile.BaseTheme == "Dark" ? "Dark" : "Light")}.xaml") };
         var surface = Parse(profile.Surface, "#FFFFFF");
         var text = Parse(profile.Text, "#1F2328");
@@ -71,18 +85,18 @@ public static class ThemeService
         colors["BorderBrush"] = Mix(surface,text,.14); colors["DividerBrush"] = Mix(surface,text,.08);
         colors["TabActiveBgBrush"] = accent;
         colors["TabActiveTextBrush"] = accent.R*.299+accent.G*.587+accent.B*.114 > 155 ? Color.FromRgb(25,28,35) : Colors.White;
-        if (profile.Material is "Frosted" or "Liquid")
+        if (profile.Material == "Frosted")
         {
-            byte alpha = profile.Material == "Frosted" ? (byte)185 : (byte)140;
+            byte alpha = 185;
             foreach (var key in new[] { "SubPanelBgBrush", "SearchBgBrush", "HoverBrush" })
             {
                 var color = colors[key]; color.A = alpha; colors[key] = color;
             }
         }
         var folderSurface=surface;
-        folderSurface.A=profile.Material=="Frosted"?(byte)185:profile.Material=="Liquid"?(byte)100:(byte)255;
+        folderSurface.A=profile.Material=="Frosted"?(byte)185:(byte)255;
         colors["FolderSurfaceBrush"]=folderSurface;
-        colors["FolderBackdropBrush"]=Color.FromArgb(profile.Material=="Frosted"?(byte)45:profile.Material=="Liquid"?(byte)30:(byte)80,0,0,0);
+        colors["FolderBackdropBrush"]=Color.FromArgb(profile.Material=="Frosted"?(byte)45:(byte)80,0,0,0);
         foreach (var pair in colors)
         {
             var previous = resources[pair.Key] as SolidColorBrush;
@@ -94,13 +108,9 @@ public static class ThemeService
         }
         Color Alpha(Color color,byte alpha) { color.A=alpha; return color; }
         var offsets=new[] { 0d,.35,.72,1d };
-        bool liquid=profile.Material=="Liquid", frosted=profile.Material=="Frosted";
-        var tileColors=liquid
-            ? new[] { Alpha(Colors.White,175),Alpha(surface,105),Alpha(accent,32),Alpha(Colors.White,115) }
-            : Enumerable.Repeat(frosted?Alpha(surface,205):colors["SubPanelBgBrush"],4).ToArray();
-        var rimColors=liquid
-            ? new[] { Alpha(Colors.White,230),Alpha(Colors.White,65),Alpha(accent,32),Alpha(Colors.White,170) }
-            : Enumerable.Repeat(Alpha(Colors.White,frosted?(byte)100:(byte)0),4).ToArray();
+        bool frosted=false;
+        var tileColors=Enumerable.Repeat(frosted?Alpha(surface,205):colors["SubPanelBgBrush"],4).ToArray();
+        var rimColors=Enumerable.Repeat(Alpha(Colors.White,frosted?(byte)100:(byte)0),4).ToArray();
         void SetGradient(string key,Color[] targets)
         {
             var old=resources[key] as LinearGradientBrush;

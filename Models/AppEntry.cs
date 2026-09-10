@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace LaunchPad.Models;
 
@@ -21,6 +21,10 @@ public abstract class AppEntry : ObservableObject
 /// <summary>单个应用/文件条目。</summary>
 public class AppItem : AppEntry
 {
+    private string _iconBackground;
+    private double? _iconOpacity;
+    public string IconBackground { get => _iconBackground; set => Set(ref _iconBackground,value); }
+    public double? IconOpacity { get => _iconOpacity; set => Set(ref _iconOpacity,value); }
     private string _customIconPath;
     public string CustomIconPath
     {

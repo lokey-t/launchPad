@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -171,6 +171,7 @@ namespace LaunchPad
             FolderCard.RenderTransform = transforms;
             _folderOrigin = GetFolderOrigin();
             SetMotion(_folderOrigin);
+            FolderSurface.BeginAnimation(UIElement.OpacityProperty,null); FolderSurface.Opacity=0;
             FolderCard.Opacity = 1;
             FolderBackdrop.Opacity = 0;
             FolderOverlay.Visibility = Visibility.Visible;
@@ -232,6 +233,7 @@ namespace LaunchPad
             AnimateValue(_folderTranslation, TranslateTransform.XProperty, target.X - FolderCard.Margin.Left, ms, easing);
 
             AnimateMovingIcons(opening, ms, easing);
+            AnimateValue(FolderSurface, UIElement.OpacityProperty, opening ? 1 : 0, ms, easing);
             AnimateValue(FolderBackdrop, UIElement.OpacityProperty, opening ? 1 : 0, ms, easing);
             AnimateValue(_folderTranslation, TranslateTransform.YProperty, target.Y - FolderCard.Margin.Top, ms, easing, () =>
             {
@@ -293,6 +295,7 @@ namespace LaunchPad
                 scale.ScaleX = scale.ScaleY = 1;
             }
             RestoreMovingIcons();
+            FolderSurface.BeginAnimation(UIElement.OpacityProperty,null); FolderSurface.Opacity=1;
             FolderCard.IsHitTestVisible = true;
         }
 

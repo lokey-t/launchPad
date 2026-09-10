@@ -6,7 +6,19 @@ namespace LaunchPad.Models;
 /// <summary>分类（Tab 栏中的一个分类）。</summary>
 public class AppCategory : ObservableObject
 {
-    public ThemeProfile ThemeOverride { get; set; }
+    private ThemeProfile _themeOverride;
+    public ThemeProfile ThemeOverride
+    {
+        get => _themeOverride;
+        set { if (Set(ref _themeOverride, value)) OnPropertyChanged(nameof(HasThemeOverrides)); }
+    }
+
+    /// <summary>该分类是否存在独立编辑的主题项目（配色/背景/材质/图标外观）。</summary>
+    [JsonIgnore]
+    public bool HasThemeOverrides =>
+        _themeOverride != null && (_themeOverride.OverrideColors || _themeOverride.OverrideBackground ||
+            (_themeOverride.OverrideMaterial ?? _themeOverride.OverrideColors) || _themeOverride.OverrideIcons ||
+            !string.IsNullOrEmpty(_themeOverride.BackgroundPath));
     private string _name;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
@@ -68,8 +80,12 @@ public class LauncherConfig
     /// <summary>图标尺寸：Small / Medium / Large。</summary>
     public string IconSize { get; set; } = "Medium";
 
-    /// <summary>弹窗位置：Center / Cursor。</summary>
+    /// <summary>弹窗位置：Center / Cursor / Last（上次位置）。</summary>
     public string Position { get; set; } = "Center";
+
+    /// <summary>上次关闭窗口时的左上角位置（仅 Position=Last 时使用，null 表示从未记录）。</summary>
+    public double? LastLeft { get; set; }
+    public double? LastTop { get; set; }
 
     /// <summary>启动方式：Single（单击启动）/ Double（双击启动）。</summary>
     public string LaunchMode { get; set; } = "Single";

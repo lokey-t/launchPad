@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -11,6 +11,18 @@ namespace LaunchPad;
 public partial class SettingsWindow : Window
 {
     private readonly App _app;
+    private readonly WindowMaterialService _material;
+    public void RefreshMaterial()
+    {
+        _material?.RefreshSurface?.Invoke();
+        ClipSettingsSurface();
+    }
+    private void ClipSettingsSurface()
+    {
+        if(SettingsSurfaceContent==null) return;
+        double radius=Math.Max(0,SettingsCard.CornerRadius.TopLeft-SettingsCard.BorderThickness.Left);
+        SettingsSurfaceContent.Clip=new RectangleGeometry(new Rect(SettingsSurfaceContent.RenderSize),radius,radius);
+    }
     private bool _capturing;
     private bool _refreshing;
     private int _pendingMods = -1;
@@ -24,6 +36,9 @@ public partial class SettingsWindow : Window
         _refreshing = true;
         InitializeComponent();
         _refreshing = false;
+        SettingsSurfaceContent.SizeChanged+=(_,_)=>ClipSettingsSurface();
+        IsVisibleChanged+=(_,_)=>ClipSettingsSurface();
+        _material=WindowMaterialService.Attach(this,SettingsCard,()=>ThemeService.Global(_app.Config));
         InputBehavior.Apply(this);
         InitializeCategorySorting();
         InitializeHoverMagnets();
@@ -41,6 +56,7 @@ public partial class SettingsWindow : Window
     /// <summary>从配置刷新所有控件（打开设置前调用）。</summary>
     public void RefreshFromConfig()
     {
+        RefreshMaterial();
         _pendingMods = -1;
         _refreshing = true;
         _capturing = false;
@@ -69,6 +85,7 @@ public partial class SettingsWindow : Window
         switch (c.Position)
         {
             case "Cursor": PosCursor.IsChecked = true; break;
+            case "Last": PosLast.IsChecked = true; break;
             default: PosCenter.IsChecked = true; break;
         }
 
@@ -194,7 +211,7 @@ public partial class SettingsWindow : Window
             var background = _app.Config.GlobalTheme;
             _app.Config.GlobalTheme = null;
             var palette = ThemeService.Global(_app.Config);
-            if (background != null) { palette.BackgroundPath=background.BackgroundPath; palette.BackgroundDim=background.BackgroundDim; _app.Config.GlobalTheme=palette; }
+            if (background != null) { palette.BackgroundPath=background.BackgroundPath; palette.BackgroundDim=background.BackgroundDim; palette.Material=background.Material; palette.GlassOpacity=background.GlassOpacity; palette.GlassBlurStrength=background.GlassBlurStrength; palette.GlassColorDepth=background.GlassColorDepth; palette.IconBackground=background.IconBackground; palette.IconOpacity=background.IconOpacity; palette.IconBorderMode=background.IconBorderMode; palette.IconBorderColor=background.IconBorderColor; palette.IconBorderWidth=background.IconBorderWidth; palette.IconShadowDirection=background.IconShadowDirection; _app.Config.GlobalTheme=palette; }
             _app.ApplyTheme(t);
             _app.RefreshMainTheme();
         }

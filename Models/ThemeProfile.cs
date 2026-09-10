@@ -13,5 +13,17 @@ public class ThemeProfile
     public bool OverrideBackground { get; set; } = true;
     public string BackgroundPath { get; set; }
     public double BackgroundDim { get; set; } = .35;
+    public double GlassBlurStrength { get; set; } = -1;
+    public double GlassColorDepth { get; set; } = .7;
+    public double GlassOpacity { get; set; } = -1;
+    public bool OverrideIcons { get; set; }
+    public string IconBackground { get; set; } = "#FFFFFF";
+    public double IconOpacity { get; set; } = 0;
+    public string IconBorderMode { get; set; } = "None";
+    public string IconBorderColor { get; set; } = "#FFFFFF";
+    public double IconBorderWidth { get; set; } = 1;
+    public double IconShadowDirection { get; set; } = 270;
+    public double IconShadowDepth { get; set; } = 3;
+    public double IconShadowStrength { get; set; } = .3;
     public ThemeProfile Copy() => (ThemeProfile)MemberwiseClone();
 }

@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -24,7 +24,7 @@ public static class PromptDialog
     public static (int modifiers, int key)? CaptureHotkey(Window owner, string title, string description,
         int initialMods = 0, int initialKey = 0)
     {
-        Brush Resource(string key) => (Brush)Application.Current.FindResource(key);
+        Brush Resource(string key) => (Brush)(owner?.TryFindResource(key)??Application.Current.FindResource(key));
         var config = (Application.Current as App)?.Config ?? new LauncherConfig();
         int capturedMods = initialMods, capturedKey = initialKey;
         bool hasCapture = initialMods != 0 && initialKey != 0;
@@ -43,6 +43,7 @@ public static class PromptDialog
             Background = Resource("PanelBgBrush"), BorderBrush = Resource("BorderBrush"), BorderThickness = new Thickness(1)
         };
         var layout = new StackPanel(); card.Child = layout; window.Content = card;
+        WindowMaterialService.Attach(window,card,()=>WindowMaterialService.ForWindow(owner,config));
         InputBehavior.Apply(window);
 
         // 标题栏
@@ -176,7 +177,7 @@ public static class PromptDialog
 
     internal static Window CreateWindow(Window owner, string title, string description, string initial, bool input, bool cancel)
     {
-        Brush Resource(string key) => (Brush)Application.Current.FindResource(key);
+        Brush Resource(string key) => (Brush)(owner?.TryFindResource(key)??Application.Current.FindResource(key));
         var config = (Application.Current as App)?.Config ?? new LauncherConfig();
         bool dismissOnBackdrop = input && title == "新建分类";
         var window = new Window
@@ -190,6 +191,7 @@ public static class PromptDialog
         var card = new Border { Margin = new Thickness(16), Padding = new Thickness(28), CornerRadius = new CornerRadius(20),
             Background = Resource("PanelBgBrush"), BorderBrush = Resource("BorderBrush"), BorderThickness = new Thickness(1) };
         var layout = new StackPanel(); card.Child = layout; window.Content = card;
+        WindowMaterialService.Attach(window,card,()=>WindowMaterialService.ForWindow(owner,config));
         InputBehavior.Apply(window);
         Grid dismissLayer = null;
         if (dismissOnBackdrop && owner != null)

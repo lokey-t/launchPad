@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -65,6 +65,7 @@ public partial class MainWindow
         }));
         if (entry is AppItem app)
         {
+            menu.Items.Add(ActionItem("图标底色与透明度…", "◐", () => { WithFeatureDialog(()=>IconAppearanceEditor.Show(this,ThemeService.Resolve(_app.Config,_activeTab?.Category),app)); _app.SaveConfig(); }));
             menu.Items.Add(ActionItem("修改图标…", "▧", () => ChooseEntryIcon(app)));
             var reset = ActionItem("恢复默认图标", "↺", () => { app.CustomIconPath = null; _app.SaveConfig(); });
             reset.IsEnabled = !string.IsNullOrEmpty(app.CustomIconPath);

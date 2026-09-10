@@ -18,26 +18,29 @@ public sealed class ThemeBackground : Grid, IDisposable
     private Layer _pending;
     private Task _currentRequest;
     private bool _disposed;
+    public double Radius { get; set; }=16;
     public event Action<string> Failed;
     public ThemeBackground()
     {
         IsHitTestVisible = false;
         ClipToBounds = true;
-        SizeChanged += (_, _) => Clip = new RectangleGeometry(new Rect(RenderSize), 16, 16);
+        SizeChanged += (_, _) => Clip = new RectangleGeometry(new Rect(RenderSize), Radius, Radius);
     }
 
     public Task SetAsync(ThemeProfile profile, double duration) => Dispatcher.InvokeAsync(()=>
     {
         if (_disposed) return Task.CompletedTask;
         profile=profile.Copy();
-        if(profile.Material is "Frosted" or "Liquid") profile.BackgroundPath=null;
-        string key=$"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}";
+        Radius=profile.Material=="Frosted"?8:16;
+        Clip=new RectangleGeometry(new Rect(RenderSize),Radius,Radius);
+        if(profile.Material == "Frosted") profile.BackgroundPath=null;
+        string key=$"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}|{ThemeService.GlassDepth(profile)}";
         return key==_key && _currentRequest!=null ? _currentRequest : (_currentRequest=SetCoreAsync(profile.Copy(),duration));
     }).Task.Unwrap();
 
     private async Task SetCoreAsync(ThemeProfile profile, double duration)
     {
-        var key = $"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}";
+        var key = $"{profile.BackgroundPath}|{profile.BackgroundDim}|{profile.Surface}|{profile.Material}|{ThemeService.GlassDepth(profile)}";
         if (key == _key) return;
         if (_pending == null && Children.Cast<Layer>().LastOrDefault() is Layer current && current.Path == profile.BackgroundPath)
         {
@@ -145,13 +148,11 @@ public sealed class ThemeBackground : Grid, IDisposable
         }
         private static Color SurfaceColor(ThemeProfile profile)
         {
-            var color=ThemeService.Parse(profile.Surface,"#FFFFFF");
-            color.A=profile.Material=="Frosted"?(byte)85:profile.Material=="Liquid"?(byte)28:(byte)255;
-            return color;
+            return ThemeService.GlassSurfaceColor(profile);
         }
         private void ApplyMaterial(ThemeProfile profile,double duration)
         {
-            bool glass=profile.Material is "Frosted" or "Liquid";
+            bool glass=profile.Material == "Frosted";
             if(glass) _glass.SetProfile(profile);
             _glass.BeginAnimation(OpacityProperty,new DoubleAnimation(_glass.Opacity,glass?1:0,TimeSpan.FromMilliseconds(duration)));
         }
