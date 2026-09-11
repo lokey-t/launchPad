@@ -20,7 +20,7 @@
 
 | 发行包 | 说明 |
 | --- | --- |
-| `LaunchPad-v0.96-win-x64.zip` | 推荐。包含 .NET 运行时，解压后直接运行 `LaunchPad.exe`。 |
+| `LaunchPad-v0.96-win-x64.zip` | 推荐。包含 .NET 运行环境，解压后直接运行 `LaunchPad.exe`。 |
 | `LaunchPad-v0.96-win-x64-framework-dependent.zip` | 精简包，需要 .NET 8 Desktop Runtime（x64）。解压后保留整个文件夹运行。 |
 
 支持 Windows 10 / 11 x64。升级前从托盘退出旧版本，再解压运行新版本。默认 **Ctrl + Space** 呼出或隐藏，可在设置中修改。关闭主窗口后应用驻留托盘，通过托盘菜单彻底退出。
