@@ -10,7 +10,7 @@
 - 自定义条目名称、图标及分类，重复导入 Toast 提示。
 - 中英文 README，版本号更新为 0.95。
 
-推荐下载 `LaunchPad-v0.95-win-x64.zip`（自带运行时）；精简包 `LaunchPad-v0.95-win-x64-framework-dependent.zip` 需要 .NET 8 Desktop Runtime（x64）。升级前从托盘退出旧版本。配置保留在 `%AppData%/LaunchPad`。
+推荐下载 `LaunchPad-v0.95-win-x64.zip`（自带运行环境）；精简包 `LaunchPad-v0.95-win-x64-framework-dependent.zip` 需要 .NET 8 Desktop Runtime（x64）。升级前从托盘退出旧版本。配置保留在 `%AppData%/LaunchPad`。
 
 ## English
 
