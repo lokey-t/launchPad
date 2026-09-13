@@ -54,6 +54,7 @@ public partial class MainWindow
         }
         if (move.Items.Count == 0) move.Items.Add(new MenuItem { Header = "暂无分类", IsEnabled = false });
         menu.Items.Add(move);
+        if (!IsFolderOpen) menu.Items.Add(CreateSortingMenu());
         menu.Items.Add(new Separator());
         menu.Items.Add(ActionItem(AppLanguage.T("修改名称…"), "✎", () =>
         {

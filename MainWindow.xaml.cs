@@ -1013,7 +1013,8 @@ namespace LaunchPad
 
 		private void LaunchApp(AppItem item)
 		{
-			AppLaunchService.Launch(item);
+			if (!AppLaunchService.Launch(item)) return;
+            ConfigService.Save(_app.Config);
 			if (_app.Config.HideAfterLaunch)
 			{
 				HideAnimated();
@@ -1049,7 +1050,8 @@ namespace LaunchPad
 				{
 					return false;
 				}
-				string fullPath = System.IO.Path.GetFullPath(path);
+				var imported=ShortcutImportService.Create(path,_app.Config.ResolveShortcuts);
+                string fullPath = imported.Path;
 				if (IsPathExistsAnywhere(fullPath))
 				{
 					ShowDuplicateToast(fullPath);
@@ -1060,11 +1062,7 @@ namespace LaunchPad
 				{
 					text = System.IO.Path.GetFileName(fullPath);
 				}
-				category.Entries.Add(new AppItem
-				{
-					Name = text,
-					Path = fullPath
-				});
+				category.Entries.Add(imported);
 				return true;
 			}
 			catch

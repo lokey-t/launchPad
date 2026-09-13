@@ -269,6 +269,12 @@
                     </Grid>
 
                     <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '行为'}" />
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '解析应用快捷方式'}" />
+                        <ToggleButton x:Name="ResolveShortcutsToggle" Grid.Column="1" Style="{StaticResource ToggleSwitch}" Checked="ResolveShortcuts_Changed" Unchecked="ResolveShortcuts_Changed" />
+                    </Grid>
+                    <TextBlock Text="{loc:Loc '添加快捷方式时链接到原文件，保留启动参数。无法解析时保留快捷方式；仅影响之后添加的条目。'}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16" />
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -501,10 +507,36 @@
                     <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '关于'}" />
                     <TextBlock Text="LaunchPad" FontSize="20" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,4" />
-                    <TextBlock Text="轻量级 Windows 应用分类启动器 · v0.95" FontSize="12"
+                    <TextBlock x:Name="AboutVersionText" FontSize="12"
                                Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,14" />
                     <TextBlock Text="· 全局快捷键呼出（默认 Ctrl + Space）&#10;· 拖入文件 / 快捷方式即可添加&#10;· 拖动图标排序，拖到另一个图标上可合并为文件夹&#10;· 开机自启、浅色 / 深色主题"
                                FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" LineHeight="20" />
+                    <Border Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                            BorderThickness="1" CornerRadius="12" Padding="16" Margin="0,20,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{loc:Loc '软件更新'}" Style="{StaticResource RowLabel}" Margin="0,0,12,0" />
+                            <Button x:Name="CheckUpdatesButton" Grid.Column="1" Click="CheckUpdates_Click" Padding="16,9" MinWidth="112">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Content" Value="{loc:Loc '检查更新'}" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Content" Value="{loc:Loc '正在检查…'}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{loc:Loc '自动检测 GitHub / Gitee 的正式版本，更新保留应用数据。'}"
+                                       FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,10,0,0" />
+                        </Grid>
+                    </Border>
+                    <Button x:Name="ReopenOnboardingButton" Content="{loc:Loc '重新进入用户引导'}" Click="ReopenOnboarding_Click"
+                            HorizontalAlignment="Left" Padding="16,9" Margin="0,20,0,0" />
+                    <TextBlock Text="{loc:Loc '从当前设置开始重新引导，完成后应用修改。'}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,8,0,0" />
                     <TextBlock x:Name="AboutPathText" FontSize="11" Foreground="{DynamicResource TextHintBrush}"
                                Margin="0,14,0,0" TextWrapping="Wrap" />
                 </StackPanel>

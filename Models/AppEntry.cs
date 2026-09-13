@@ -12,6 +12,8 @@ public abstract class AppEntry : ObservableObject
     public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
     private string _name;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public DateTimeOffset? AddedAt { get; set; }
+    public DateTimeOffset? LastOpenedAt { get; set; }
 
     public string Name
     {
@@ -38,6 +40,7 @@ public class AppItem : AppEntry
 
     /// <summary>启动参数（可选）。</summary>
     public string Args { get; set; }
+    public string WorkingDirectory { get; set; }
 
     /// <summary>是否为快捷方式（.lnk）。</summary>
     [JsonIgnore]

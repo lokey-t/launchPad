@@ -277,7 +277,7 @@ public partial class MainWindow
         {
             var owner = EntryMoveService.Owner(_app.Config, target);
             if (owner == null) return false;
-            var folder = new AppFolder { Name = target.Name + " 等" };
+            var folder = new AppFolder { Name = target.Name + " 等", AddedAt = DateTimeOffset.UtcNow };
             owner.Entries.Insert(owner.Entries.IndexOf(target), folder);
             int global = _app.Config.GlobalOrder.IndexOf(target.Id);
             if (global >= 0) _app.Config.GlobalOrder[global] = folder.Id;

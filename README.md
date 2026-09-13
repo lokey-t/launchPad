@@ -1,4 +1,4 @@
-# LaunchPad v0.96
+# LaunchPad v0.97
 
 **中文** · [English](README.en.md)
 
@@ -16,14 +16,15 @@
 
 ## 下载与运行
 
-从 [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.96) 下载：
+从 [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97) 或 [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97) 下载：
 
 | 发行包 | 说明 |
 | --- | --- |
-| `LaunchPad-v0.96-win-x64.zip` | 推荐。包含 .NET 运行环境，解压后直接运行 `LaunchPad.exe`。 |
-| `LaunchPad-v0.96-win-x64-framework-dependent.zip` | 精简包，需要 .NET 8 Desktop Runtime（x64）。解压后保留整个文件夹运行。 |
+| `LaunchPad-v0.97-win-x64-setup.exe` | 推荐。单 EXE 离线安装，自带运行环境，可选目录；识别旧版并更新，保留配置和备份。 |
+| `LaunchPad-v0.97-win-x64.zip` | 便携完整版。包含 .NET 运行环境，解压后直接运行 `LaunchPad.exe`。 |
+| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | 精简包，需要 .NET 8 Desktop Runtime（x64）。解压后保留整个文件夹运行。 |
 
-支持 Windows 10 / 11 x64。升级前从托盘退出旧版本，再解压运行新版本。默认 **Ctrl + Space** 呼出或隐藏，可在设置中修改。关闭主窗口后应用驻留托盘，通过托盘菜单彻底退出。
+支持 Windows 10 / 11 x64。安装包可自动识别旧版本并更新，未注册且未运行的便携版需选择原目录；使用 ZIP 覆盖升级前，从托盘退出旧版本。默认 **Ctrl + Space** 呼出或隐藏，可在设置中修改。关闭主窗口后应用驻留托盘，通过托盘菜单彻底退出。
 
 ## 功能
 
@@ -35,7 +36,15 @@
 - **图标外观**：支持底色不透明度、无边框 / 阴影边框 / 直线边框样式选择；阴影方向通过可视化弹窗拖动调节，附带强度滑块与实时预览。可一键恢复默认。
 - **界面动效**：关闭、快速、均衡、优化四种模式；连续文件夹变形过渡、细圆角滚动条和滚轮缓动。支持图标尺寸、窗口位置（含“上次位置”）及自动隐藏设置。
 - **布局优化**：悬浮式滚动条不挤占内容宽度；小 / 中 / 大图标模式收紧间距，每行容纳更多图标；内容可滚动时底部信息条上方显示柔和阴影。
-- **其他**：开机自启、托盘菜单、重复运行提示实际快捷键、新建分类弹窗点击空白关闭。应用内禁用 Tab 焦点切换与 Alt 按键提示，不改变 Windows 设置。
+- **其他**：开机自启、托盘菜单、再次运行直接打开已有主界面、新建分类弹窗点击空白关闭。应用内禁用 Tab 焦点切换与 Alt 按键提示，不改变 Windows 设置。
+
+## v0.97 新增
+
+- 自动更新提示与关于页手动检查：忽略本版本、下次再说、双站自主下载、按文件增量更新及失败回滚。
+- 首次运行引导，可从关于页重新进入；应用快捷方式默认解析原文件，可在通用关闭。
+- 新图标、统一托盘菜单，拖动预览跟随图标风格，主页右键按添加时间、名称、打开时间排序。
+- 通用设置切换中英文；主题预设可保存、删除并以 `.qdtstylebackup` 导入导出，包含素材且不覆盖其他配置。未知新版本配置保留供未来使用。
+- 恢复出厂设置保留备份点，升级保留应用、分类、主题与素材。
 
 ## 主题中心
 
@@ -77,3 +86,5 @@ dotnet publish LaunchPad.csproj -c Release -r win-x64 --self-contained true -p:P
 | `Themes` / `Converters` | WPF 样式、资源和绑定转换 |
 
 见 [发行说明](RELEASE_NOTES.md)。发行版附带 SHA-256 校验文件。
+
+生成发行包见 [Build-Release.ps1](tools/Build-Release.ps1)，安装细节见 [安装说明](docs/INSTALLER.md)，可复用流程见 [launchpad-release skill](docs/skills/launchpad-release/SKILL.md)。

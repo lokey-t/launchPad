@@ -95,6 +95,11 @@ public static class ThemeService
                 var color = colors[key]; color.A = alpha; colors[key] = color;
             }
         }
+        var popupSurface=surface; popupSurface.A=255;
+        colors["PopupSurfaceBrush"]=popupSurface;
+        colors["PopupTextBrush"]=surface.R*.299+surface.G*.587+surface.B*.114>145 ? Color.FromRgb(31,35,40) : Color.FromRgb(242,244,248);
+        colors["PopupBorderBrush"]=Mix(popupSurface,colors["PopupTextBrush"],.2);
+        colors["PopupHoverBrush"]=Mix(popupSurface,colors["PopupTextBrush"],.08);
         var folderSurface=surface;
         folderSurface.A=profile.Material=="Frosted"?(byte)185:(byte)255;
         colors["FolderSurfaceBrush"]=folderSurface;

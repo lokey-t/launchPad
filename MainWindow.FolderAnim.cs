@@ -142,6 +142,8 @@ namespace LaunchPad
 
         private void OpenFolder(AppFolder folder)
         {
+            folder.LastOpenedAt = DateTimeOffset.UtcNow;
+            ConfigService.Save(_app.Config);
             if (IsFolderOpen) HideFolderNow();
             _openFolder = folder;
             _openFolderContainer = IconGrid.ItemContainerGenerator.ContainerFromItem(folder) as FrameworkElement;

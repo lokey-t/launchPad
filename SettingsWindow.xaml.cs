@@ -35,6 +35,7 @@ public partial class SettingsWindow : Window
         // 若此时写入配置会把用户已保存的悬停秒数覆盖为最小值；先屏蔽事件写入。
         _refreshing = true;
         InitializeComponent();
+        AboutVersionText.Text = "LaunchPad · v" + UpdateService.DisplayVersion(UpdateService.CurrentVersion);
         var languageStyles=new ResourceDictionary { Source=new Uri("pack://application:,,,/LaunchPad;component/Themes/ThemeCenter.xaml") };
         LanguageChoice.Style=(Style)languageStyles[typeof(ComboBox)];
         LanguageChoice.ItemContainerStyle=(Style)languageStyles[typeof(ComboBoxItem)];
@@ -68,6 +69,7 @@ public partial class SettingsWindow : Window
         LanguageChoice.SelectedIndex=c.Language=="en-US"?1:0;
         AutoStartToggle.IsChecked = c.AutoStart;
         MinimizeTrayToggle.IsChecked = c.MinimizeToTray;
+        ResolveShortcutsToggle.IsChecked=c.ResolveShortcuts;
         SingleClickToggle.IsChecked = c.LaunchMode == "Single";
         HideAfterLaunchToggle.IsChecked = c.HideAfterLaunch;
         HideOnFocusLostToggle.IsChecked = c.HideOnFocusLost;
@@ -129,6 +131,25 @@ public partial class SettingsWindow : Window
         HotkeyCategoryList.SelectedItem=selectedHotkey;
     }
 
+    private async void CheckUpdates_Click(object sender,RoutedEventArgs e)
+    {
+        CheckUpdatesButton.IsEnabled = false;
+        try { await _app.CheckUpdatesAsync(true,this); }
+        finally { CheckUpdatesButton.IsEnabled = true; }
+    }
+
+    private void ReopenOnboarding_Click(object sender,RoutedEventArgs e)
+    {
+        new OnboardingWindow(_app, true) { Owner=this, WindowStartupLocation=WindowStartupLocation.CenterOwner }.ShowDialog();
+        RefreshFromConfig();
+    }
+
+    private void ResolveShortcuts_Changed(object sender,RoutedEventArgs e)
+    {
+        if(_refreshing) return;
+        _app.Config.ResolveShortcuts=ResolveShortcutsToggle.IsChecked==true;
+        _app.SaveConfig();
+    }
     private void Language_Changed(object sender, SelectionChangedEventArgs e)
     {
         if(_refreshing || LanguageChoice.SelectedItem is not ComboBoxItem choice) return;

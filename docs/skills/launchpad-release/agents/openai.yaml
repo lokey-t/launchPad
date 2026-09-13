@@ -1,0 +1,4 @@
+interface:
+  display_name: "LaunchPad 双站发行"
+  short_description: "构建并校验安装包、整理双语文档，将 LaunchPad 版本发布到 GitHub 与 Gitee"
+  default_prompt: "使用 $launchpad-release 将当前 LaunchPad 版本提交并发布到 GitHub 和 Gitee。"

@@ -1,4 +1,4 @@
-# LaunchPad v0.96
+# LaunchPad v0.97
 
 [中文](README.md) · **English**
 
@@ -16,14 +16,15 @@ A lightweight Windows application launcher with keyboard shortcuts, categories, 
 
 ## Download and run
 
-Download from [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.96):
+Download from [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97) or [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97):
 
 | Package | Requirements |
 | --- | --- |
-| `LaunchPad-v0.96-win-x64.zip` | Recommended. Includes the .NET runtime. Extract and run `LaunchPad.exe`. |
-| `LaunchPad-v0.96-win-x64-framework-dependent.zip` | Smaller package requiring .NET 8 Desktop Runtime (x64). Keep all extracted files together. |
+| `LaunchPad-v0.97-win-x64-setup.exe` | Recommended. Offline single EXE setup with runtime included, folder selection and in-place upgrades preserving settings and backups. |
+| `LaunchPad-v0.97-win-x64.zip` | Portable full package. Includes the .NET runtime. Extract and run `LaunchPad.exe`. |
+| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | Smaller package requiring .NET 8 Desktop Runtime (x64). Keep all extracted files together. |
 
-Supports Windows 10 / 11 x64. Exit the previous instance from its tray menu before upgrading. The default show/hide shortcut is **Ctrl + Space**, configurable in Settings. Closing the main window leaves the app in the tray; use the tray menu to exit completely.
+Supports Windows 10 / 11 x64. Setup detects existing installations; select the original folder for an unregistered portable copy that is not running. Exit the previous tray instance before upgrading with ZIP files. The default show/hide shortcut is **Ctrl + Space**, configurable in Settings. Closing the main window leaves the app in the tray; use the tray menu to exit completely.
 
 ## Features
 
@@ -35,7 +36,15 @@ Supports Windows 10 / 11 x64. Exit the previous instance from its tray menu befo
 - **Icon appearance:** configure background opacity and choose between no border, shadow border, and solid border. Shadow direction is adjusted visually by dragging a sun control, with a strength slider and live preview. Reset to defaults with one click.
 - **Motion and layout:** Off, Fast, Balanced, and Optimized modes; continuous folder transitions, slim rounded scrollbars, and smooth wheel scrolling. Configure icon size, window position (including "last position"), and automatic hiding.
 - **Layout refinements:** overlay scrollbars no longer reduce content width; Small / Medium / Large icon modes use tighter spacing so each row holds more icons; a soft shadow appears above the bottom bar when content is scrollable.
-- **Other:** launch at startup, tray menu, second-instance notices with the configured shortcut, and click-outside dismissal for the New Category dialog. Tab navigation and Alt access-key hints are suppressed within the app without changing Windows settings.
+- **Other:** launch at startup, tray menu, opening the existing main window when launched again, and click-outside dismissal for the New Category dialog. Tab navigation and Alt access-key hints are suppressed within the app without changing Windows settings.
+
+## New in v0.97
+
+- Startup update notifications and manual checks in About: Ignore, Later, downloads from either host, per-file incremental updates and rollback on failure.
+- First-run onboarding, accessible again from About; shortcut target resolution enabled by default and configurable in General.
+- New icon, consistent tray menu, themed drag previews, and home sorting by added time, name or last-opened time.
+- Chinese/English switching in General. Save, delete, import and export `.qdtstylebackup` presets with their media without replacing other data; unknown newer settings are retained for future versions.
+- Factory reset retains backup points. Upgrades keep apps, categories, themes and imported assets.
 
 ## Theme Center
 
@@ -77,3 +86,5 @@ Exit any instance using the output directory before rebuilding, or choose a diff
 | `Themes` / `Converters` | WPF styles, resources, and binding converters |
 
 See [release notes](RELEASE_NOTES.md). A SHA-256 checksum file accompanies the release.
+
+Build release assets with [Build-Release.ps1](tools/Build-Release.ps1). See [installer details](docs/INSTALLER.md) and the reusable [launchpad-release skill](docs/skills/launchpad-release/SKILL.md).

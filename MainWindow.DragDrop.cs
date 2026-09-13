@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LaunchPad - 主网格拖拽排序与外部拖入 (partial class)
 // 从 MainWindow.xaml.cs 按职责拆分，编译结果与原合并版完全等价。
 // ============================================================
@@ -52,54 +52,7 @@ namespace LaunchPad
 			{
 				frameworkElement.Opacity = 0.35;
 			}
-			_dragGhost = new Border
-			{
-				Width = TileWidth + 12.0,
-				Height = TileHeight + 8.0,
-				Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(230, byte.MaxValue, byte.MaxValue, byte.MaxValue)),
-				CornerRadius = new CornerRadius(14.0),
-				BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromArgb(64, 46, 109, 153)),
-				BorderThickness = new Thickness(1.0),
-				Opacity = 0.92
-			};
-			StackPanel stackPanel = new StackPanel
-			{
-				HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-				VerticalAlignment = VerticalAlignment.Center
-			};
-			Border border = new Border
-			{
-				Width = IconBox,
-				Height = IconBox,
-				CornerRadius = new CornerRadius(10.0),
-				Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(byte.MaxValue, 245, 244, 241))
-			};
-			System.Windows.Controls.Image image = new System.Windows.Controls.Image
-			{
-				Width = IconBox,
-				Height = IconBox,
-				Stretch = Stretch.Uniform,
-				Margin = new Thickness(4.0)
-			};
-			ImageSource icon = IconService.GetIcon(_dragEntry);
-			if (icon != null)
-			{
-				image.Source = icon;
-			}
-			border.Child = image;
-			TextBlock element = new TextBlock
-			{
-				Text = _dragEntry.Name,
-				FontSize = 11.0,
-				Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(byte.MaxValue, 107, 114, 128)),
-				Margin = new Thickness(0.0, 5.0, 0.0, 0.0),
-				MaxWidth = 92.0,
-				TextTrimming = TextTrimming.CharacterEllipsis,
-				HorizontalAlignment = System.Windows.HorizontalAlignment.Center
-			};
-			stackPanel.Children.Add(border);
-			stackPanel.Children.Add(element);
-			_dragGhost.Child = stackPanel;
+			_dragGhost = CreateDragPreview(_dragEntry, false);
 			System.Windows.Controls.Panel.SetZIndex(_dragGhost, 200);
 			DragLayer.Children.Add(_dragGhost);
 			_highlight = new System.Windows.Shapes.Rectangle
@@ -669,6 +622,7 @@ namespace LaunchPad
 				AppFolder item = new AppFolder
 				{
 					Name = dragged.Name + " 等",
+                    AddedAt = DateTimeOffset.UtcNow,
 					Items = 
 					{
 						(AppItem)dragged,

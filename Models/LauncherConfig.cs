@@ -53,6 +53,9 @@ public class LauncherConfig
     [JsonExtensionData]
     public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
     public string Language { get; set; } = "zh-CN";
+    public string IgnoredUpdateVersion { get; set; }
+    public bool OnboardingPending { get; set; }
+    public bool ResolveShortcuts { get; set; } = true;
     public bool AutoBackup { get; set; }
     public ThemeProfile GlobalTheme { get; set; }
     public bool ShowThemeButton { get; set; } = true;

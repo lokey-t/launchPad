@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Pipes;
 using Microsoft.Win32;
 
@@ -25,20 +25,28 @@ public static class BackupFileAssociation
         SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
     }
 
-    public static bool Forward(string path)
+    private const string ShowCommand="LaunchPad.ShowMain";
+    [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
+    private static extern bool GetNamedPipeServerProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe,out uint processId);
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool AllowSetForegroundWindow(uint processId);
+    public static bool ForwardShowMain() => ForwardMessage(ShowCommand);
+    public static bool Forward(string path) => ForwardMessage(Path.GetFullPath(path));
+    private static bool ForwardMessage(string message)
     {
         try
         {
             using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.Out);
             pipe.Connect(5000);
             using var writer = new StreamWriter(pipe) { AutoFlush = true };
-            writer.WriteLine(Path.GetFullPath(path));
+            if(GetNamedPipeServerProcessId(pipe.SafePipeHandle,out var processId)) AllowSetForegroundWindow(processId);
+            writer.WriteLine(message);
             return true;
         }
         catch { return false; }
     }
 
-    public static async Task Listen(Action<string> open, CancellationToken cancellation)
+    public static async Task Listen(Action<string> open, CancellationToken cancellation, Action showMain=null, Action exitForUpdate=null)
     {
         while (!cancellation.IsCancellationRequested)
         {
@@ -51,6 +59,8 @@ public static class BackupFileAssociation
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
                 timeout.CancelAfter(TimeSpan.FromSeconds(5));
                 var path = await reader.ReadLineAsync(timeout.Token);
+                if(path==ShowCommand) { showMain?.Invoke(); continue; }
+                if(path=="LaunchPad.ExitForUpdate") { exitForUpdate?.Invoke(); continue; }
                 if (path?.Length <= 32767 && Path.GetExtension(path).Equals(".qdtbackup", StringComparison.OrdinalIgnoreCase)) open(path);
             }
             catch (OperationCanceledException) { }

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LaunchPad - 文件夹内拖拽排序 (partial class)
 // 从 MainWindow.xaml.cs 按职责拆分，编译结果与原合并版完全等价。
 // ============================================================
@@ -66,47 +66,7 @@ namespace LaunchPad
 			if (!_folderDragging && (Math.Abs(position.X - _folderDragStart.X) > 6.0 || Math.Abs(position.Y - _folderDragStart.Y) > 6.0))
 			{
 				_folderDragging = true;
-				ImageSource icon = IconService.GetIcon(_folderDragItem);
-				Border element = new Border
-				{
-					Width = 54.0,
-					Height = 54.0,
-					CornerRadius = new CornerRadius(10.0),
-					Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(byte.MaxValue, 245, 244, 241)),
-					Child = ((icon == null) ? null : new System.Windows.Controls.Image
-					{
-						Source = icon,
-						Margin = new Thickness(4.0),
-						Stretch = Stretch.Uniform
-					})
-				};
-				_folderGhost = new Border
-				{
-					Width = 78.0,
-					Height = 96.0,
-					Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(230, byte.MaxValue, byte.MaxValue, byte.MaxValue)),
-					CornerRadius = new CornerRadius(12.0),
-					Opacity = 0.92,
-					Child = new StackPanel
-					{
-						HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-						VerticalAlignment = VerticalAlignment.Center,
-						Children = 
-						{
-							(UIElement)element,
-							(UIElement)new TextBlock
-							{
-								Text = _folderDragItem.Name,
-								FontSize = 11.0,
-								Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(byte.MaxValue, 107, 114, 128)),
-								HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-								Margin = new Thickness(0.0, 4.0, 0.0, 0.0),
-								MaxWidth = 70.0,
-								TextTrimming = TextTrimming.CharacterEllipsis
-							}
-						}
-					}
-				};
+				_folderGhost = CreateDragPreview(_folderDragItem, true);
 				System.Windows.Controls.Panel.SetZIndex(_folderGhost, 100);
 				FolderDragLayer.Children.Add(_folderGhost);
 				HideFolderDragVisual();

@@ -59,9 +59,8 @@ public partial class App : Application
         {
             var backupFile = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
             if (backupFile != null && BackupFileAssociation.Forward(backupFile)) { Shutdown(); return; }
-            var shortcut = ConfigService.ReadHotkey();
-            MessageBox.Show($"软件已运行，按 {LaunchPad.MainWindow.FormatHotkey(shortcut.Modifiers, shortcut.Key)} 打开主界面。",
-                "LaunchPad 已在运行", MessageBoxButton.OK, MessageBoxImage.Information);
+            if(!BackupFileAssociation.ForwardShowMain())
+                MessageBox.Show("暂时无法唤起主界面，请稍后重试。", "LaunchPad", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -78,11 +77,23 @@ public partial class App : Application
         SetupTray();
         try { BackupFileAssociation.Register(); }
         catch (Exception ex) { System.Diagnostics.Trace.WriteLine("备份文件关联注册失败：" + ex.Message); }
-        _ = Task.Run(() => BackupFileAssociation.Listen(path => Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(path))), _backupCancellation.Token));
+        _ = Task.Run(() => BackupFileAssociation.Listen(path => Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(path))), _backupCancellation.Token, () => Dispatcher.BeginInvoke(new Action(ShowMain)), () => Dispatcher.BeginInvoke(new Action(() => { if (ConfigService.Save(Config)) ExitApp(); }))));
         _backupTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _backupTimer.Tick += (_, _) => BackupService.CheckExternalChanges(Config);
         _backupTimer.Start();
 
+        if(Config.OnboardingPending)
+        {
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                new OnboardingWindow(this).ShowDialog();
+                ShowMain();
+                StartUpdateCheck();
+                var backup=e.Args.FirstOrDefault(a=>a.EndsWith(".qdtbackup",StringComparison.OrdinalIgnoreCase));
+                if(backup!=null) OpenBackupFile(backup);
+            }));
+            return;
+        }
         if (Config.MinimizeToTray && Config.AutoStart)
         {
             _mainWindow.Hide();
@@ -92,6 +103,7 @@ public partial class App : Application
             ShowMain();
         }
         var initialBackup = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
+        StartUpdateCheck();
         if (initialBackup != null) Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(initialBackup)));
     }
 
@@ -141,6 +153,8 @@ public partial class App : Application
     {
         ApplyPosition();
         MotionService.Show(_mainWindow, Config);
+        if(_mainWindow.WindowState==WindowState.Minimized) _mainWindow.WindowState=WindowState.Normal;
+        _mainWindow.Activate();
         _mainWindow.Topmost = true;
         _mainWindow.Topmost = false;
     }
@@ -274,12 +288,7 @@ public partial class App : Application
         };
         _tray.DoubleClick += (_, _) => Dispatcher.Invoke(ShowMain);
 
-        var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("显示主界面", null, (_, _) => Dispatcher.Invoke(ShowMain));
-        menu.Items.Add("设置", null, (_, _) => Dispatcher.Invoke(OpenSettings));
-        menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
-        menu.Items.Add("退出", null, (_, _) => Dispatcher.Invoke(ExitApp));
-        _tray.ContextMenuStrip = menu;
+        _tray.MouseUp += (_,e) => { if (e.Button == System.Windows.Forms.MouseButtons.Right) Dispatcher.Invoke(ShowTrayMenu); };
     }
 
     public void ExitApp()
@@ -324,6 +333,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _backupTimer?.Stop();
+        _trayMenuHost?.Close();
         _backupCancellation.Cancel();
         // Mutex 冲突/启动失败时 Config 尚未加载，禁止把 null 覆盖写入用户配置
         if (Config != null)

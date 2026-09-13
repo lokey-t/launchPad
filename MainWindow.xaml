@@ -316,6 +316,11 @@
                     <ContextMenu>
                         <MenuItem Header="{loc:Loc '添加应用…'}" Click="AddApp_Click" />
                         <MenuItem Header="{loc:Loc '新建分类'}" Click="AddCategory_Click" />
+                        <MenuItem Header="{loc:Loc '排序'}" Icon="↕">
+                            <MenuItem Header="{loc:Loc '添加时间'}" Tag="Added" ToolTip="{loc:Loc '最近添加的在前'}" Click="SortEntries_Click" />
+                            <MenuItem Header="{loc:Loc '首字母'}" Tag="Name" ToolTip="{loc:Loc '按名称升序排列'}" Click="SortEntries_Click" />
+                            <MenuItem Header="{loc:Loc '打开时间'}" Tag="Opened" ToolTip="{loc:Loc '最近打开的在前'}" Click="SortEntries_Click" />
+                        </MenuItem>
                         <Separator />
                         <MenuItem Header="{loc:Loc '设置'}" Click="Settings_Click" />
                     </ContextMenu>

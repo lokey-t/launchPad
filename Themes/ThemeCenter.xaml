@@ -85,8 +85,8 @@
                 </ToggleButton>
                 <ContentPresenter Margin="12,7,30,7" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" />
                 <TextBlock Text="⌄" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" IsHitTestVisible="False" />
-                <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Placement="Bottom" Focusable="False">
-                    <Border Background="{DynamicResource PanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="8" Padding="5" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Placement="Bottom" VerticalOffset="5" PopupAnimation="Fade" Focusable="False">
+                    <Border Background="{DynamicResource PopupSurfaceBrush}" BorderBrush="{DynamicResource PopupBorderBrush}" BorderThickness="1" CornerRadius="10" Padding="5" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                         <ScrollViewer MaxHeight="280"><ItemsPresenter /></ScrollViewer>
                     </Border>
                 </Popup>
@@ -94,13 +94,19 @@
         </ControlTemplate></Setter.Value></Setter>
     </Style>
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Foreground" Value="{DynamicResource PopupTextBrush}" />
+        <Setter Property="Padding" Value="12,10" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem">
-            <Border x:Name="Row" CornerRadius="6" Padding="{TemplateBinding Padding}" Background="Transparent"><ContentPresenter /></Border>
+            <Border x:Name="Row" CornerRadius="7" Padding="{TemplateBinding Padding}" Margin="0,1" Background="Transparent">
+                <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="24"/></Grid.ColumnDefinitions>
+                    <ContentPresenter VerticalAlignment="Center"/>
+                    <TextBlock x:Name="Checkmark" Grid.Column="1" Text="✓" Visibility="Hidden" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
             <ControlTemplate.Triggers>
-                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource HoverBrush}" /></Trigger>
-                <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource AccentLightBrush}" /></Trigger>
+                <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource PopupHoverBrush}" /></Trigger>
+                <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource TabActiveBgBrush}"/><Setter Property="Foreground" Value="{DynamicResource TabActiveTextBrush}"/><Setter TargetName="Checkmark" Property="Visibility" Value="Visible"/></Trigger>
             </ControlTemplate.Triggers>
         </ControlTemplate></Setter.Value></Setter>
     </Style>

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using LaunchPad.Models;
@@ -105,7 +105,7 @@ public static class ConfigService
                 System.Windows.MessageBox.Show("配置读取失败且无法备份，为保护原数据，本次运行不会保存配置。", "LaunchPad");
             }
         }
-        return new LauncherConfig();
+        return new LauncherConfig { OnboardingPending = !File.Exists(FilePath) };
     }
 
     public static bool Save(LauncherConfig config)
