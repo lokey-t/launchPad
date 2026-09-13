@@ -1,5 +1,6 @@
-<Window x:Class="LaunchPad.MainWindow"
+﻿<Window x:Class="LaunchPad.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:LaunchPad.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:models="clr-namespace:LaunchPad.Models"
         xmlns:controls="clr-namespace:LaunchPad.Controls"
@@ -214,7 +215,7 @@
 
                     <Button Grid.Column="1" x:Name="AddCategoryBtn" Content="＋" Width="30" Height="30"
                             Margin="2,0,0,0" Cursor="Hand" Click="AddCategory_Click" FontSize="15"
-                            ToolTip="新建分类">
+                            ToolTip="{loc:Loc '新建分类'}">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="{DynamicResource SearchBgBrush}" />
@@ -253,7 +254,7 @@
                                      BorderThickness="0" Foreground="{DynamicResource TextPrimaryBrush}"
                                      FontSize="12" VerticalContentAlignment="Center"
                                      TextChanged="SearchBox_TextChanged" />
-                            <TextBlock Grid.Column="1" Text="搜索应用" FontSize="12"
+                            <TextBlock Grid.Column="1" Text="{loc:Loc '搜索应用'}" FontSize="12"
                                        Foreground="{DynamicResource TextHintBrush}"
                                        VerticalAlignment="Center" IsHitTestVisible="False">
                                 <TextBlock.Style>
@@ -276,12 +277,12 @@
                                    Foreground="{DynamicResource TextSecondaryBrush}" />
                     </Border>
 
-                    <Button x:Name="ThemeButton" Content="主题" Padding="8,4" Margin="8,0,0,0" Click="OpenThemeCenter" ToolTip="主题中心" Foreground="{DynamicResource TextSecondaryBrush}" FocusVisualStyle="{x:Null}" Cursor="Hand">
+                    <Button x:Name="ThemeButton" Content="{loc:Loc '主题'}" Padding="8,4" Margin="8,0,0,0" Click="OpenThemeCenter" ToolTip="{loc:Loc '主题中心'}" Foreground="{DynamicResource TextSecondaryBrush}" FocusVisualStyle="{x:Null}" Cursor="Hand">
                         <Button.Template><ControlTemplate TargetType="Button"><Border CornerRadius="8" Padding="{TemplateBinding Padding}" Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1"><ContentPresenter VerticalAlignment="Center" /></Border></ControlTemplate></Button.Template>
                     </Button>
                     <Button x:Name="SettingsBtn" Content="⚙" Width="30" Height="30" Margin="8,0,0,0"
                             Cursor="Hand" Click="Settings_Click" FontSize="14"
-                            ToolTip="设置">
+                            ToolTip="{loc:Loc '设置'}">
                         <Button.Style>
                             <Style TargetType="Button">
                                 <Setter Property="Background" Value="Transparent" />
@@ -313,10 +314,10 @@
 
                 <ScrollViewer.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="添加应用…" Click="AddApp_Click" />
-                        <MenuItem Header="新建分类" Click="AddCategory_Click" />
+                        <MenuItem Header="{loc:Loc '添加应用…'}" Click="AddApp_Click" />
+                        <MenuItem Header="{loc:Loc '新建分类'}" Click="AddCategory_Click" />
                         <Separator />
-                        <MenuItem Header="设置" Click="Settings_Click" />
+                        <MenuItem Header="{loc:Loc '设置'}" Click="Settings_Click" />
                     </ContextMenu>
                 </ScrollViewer.ContextMenu>
                 <ItemsControl x:Name="IconGrid" Background="Transparent"
@@ -347,7 +348,7 @@
                     <TextBlock x:Name="StatusText" FontSize="11"
                                Foreground="{DynamicResource TextHintBrush}"
                                HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <TextBlock Text="拖入文件或快捷方式即可添加应用" FontSize="11"
+                    <TextBlock Text="{loc:Loc '拖入文件或快捷方式即可添加应用'}" FontSize="11"
                                Foreground="{DynamicResource TextHintBrush}"
                                HorizontalAlignment="Right" VerticalAlignment="Center" />
                 </Grid>
@@ -360,7 +361,7 @@
             Background="{DynamicResource AccentLightBrush}" CornerRadius="12"
             BorderBrush="{DynamicResource AccentBrush}" BorderThickness="1.5"
             Height="40" Margin="20,16,20,0" VerticalAlignment="Top">
-        <TextBlock Text="松开以添加到当前分类" FontSize="12.5" FontWeight="600"
+        <TextBlock Text="{loc:Loc '松开以添加到当前分类'}" FontSize="12.5" FontWeight="600"
                    Foreground="{DynamicResource AccentDeepBrush}"
                    HorizontalAlignment="Center" VerticalAlignment="Center" />
     </Border>

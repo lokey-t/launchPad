@@ -40,11 +40,11 @@ public partial class MainWindow
             option.Click += (_, e) => { e.Handled = true; action(); };
             return option;
         }
-        menu.Items.Add(ActionItem(entry is AppFolder ? "打开文件夹" : "打开", "↗", () =>
+        menu.Items.Add(ActionItem(entry is AppFolder ? AppLanguage.T("打开文件夹") : AppLanguage.T("打开"), "↗", () =>
         {
             if (entry is AppFolder folder) OpenFolder(folder); else LaunchApp((AppItem)entry);
         }));
-        var move = new MenuItem { Header = "修改分类", Icon = "⇄" };
+        var move = new MenuItem { Header = AppLanguage.T("修改分类"), Icon = "⇄" };
         var owner = EntryMoveService.Owner(_app.Config, entry);
         foreach (var category in _app.Config.Categories)
         {
@@ -55,7 +55,7 @@ public partial class MainWindow
         if (move.Items.Count == 0) move.Items.Add(new MenuItem { Header = "暂无分类", IsEnabled = false });
         menu.Items.Add(move);
         menu.Items.Add(new Separator());
-        menu.Items.Add(ActionItem("修改名称…", "✎", () =>
+        menu.Items.Add(ActionItem(AppLanguage.T("修改名称…"), "✎", () =>
         {
             var name = WithFeatureDialog(() => PromptDialog.Show(this, "修改名称", "显示名称", entry.Name));
             if (string.IsNullOrWhiteSpace(name)) return;
@@ -66,13 +66,13 @@ public partial class MainWindow
         if (entry is AppItem app)
         {
             menu.Items.Add(ActionItem("图标底色与透明度…", "◐", () => { WithFeatureDialog(()=>IconAppearanceEditor.Show(this,ThemeService.Resolve(_app.Config,_activeTab?.Category),app)); _app.SaveConfig(); }));
-            menu.Items.Add(ActionItem("修改图标…", "▧", () => ChooseEntryIcon(app)));
-            var reset = ActionItem("恢复默认图标", "↺", () => { app.CustomIconPath = null; _app.SaveConfig(); });
+            menu.Items.Add(ActionItem(AppLanguage.T("修改图标…"), "▧", () => ChooseEntryIcon(app)));
+            var reset = ActionItem(AppLanguage.T("恢复默认图标"), "↺", () => { app.CustomIconPath = null; _app.SaveConfig(); });
             reset.IsEnabled = !string.IsNullOrEmpty(app.CustomIconPath);
             menu.Items.Add(reset);
         }
         menu.Items.Add(new Separator());
-        menu.Items.Add(ActionItem(entry is AppFolder ? "解散文件夹" : "从启动台移除", "−", () => RemoveEntry(entry)));
+        menu.Items.Add(ActionItem(entry is AppFolder ? AppLanguage.T("解散文件夹") : AppLanguage.T("从启动台移除"), "−", () => RemoveEntry(entry)));
     }
 
     private void MoveEntryToCategory(AppEntry entry, AppCategory category)

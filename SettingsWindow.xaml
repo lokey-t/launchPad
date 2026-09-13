@@ -1,5 +1,6 @@
 ﻿<Window x:Class="LaunchPad.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:loc="clr-namespace:LaunchPad.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:LaunchPad.Converters"
         Title="LaunchPad 设置" Width="860" Height="680" FontFamily="Microsoft YaHei UI"
@@ -215,39 +216,45 @@
                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                     <StackPanel Margin="10,0,0,30">
                         <TextBlock Text="LaunchPad" FontSize="21" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock Text="偏好设置" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" />
+                        <TextBlock Text="{loc:Loc '偏好设置'}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,6,0,0" />
                     </StackPanel>
                     <StackPanel Grid.Row="1">
-                        <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Content="常规与启动" GroupName="nav" IsChecked="True" Tag="general" Checked="Nav_Checked" />
-                        <RadioButton x:Name="NavHotkey" Style="{StaticResource NavItem}" Content="快捷键" GroupName="nav" Tag="hotkey" Checked="Nav_Checked" />
-                        <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Content="外观与动效" GroupName="nav" Tag="appearance" Checked="Nav_Checked" />
-                        <RadioButton x:Name="NavManage" Style="{StaticResource NavItem}" Content="分类管理" GroupName="nav" Tag="manage" Checked="Nav_Checked" />
-                        <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}" Content="关于" GroupName="nav" Tag="about" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavGeneral" Style="{StaticResource NavItem}" Content="{loc:Loc '通用'}" GroupName="nav" IsChecked="True" Tag="general" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavHotkey" Style="{StaticResource NavItem}" Content="{loc:Loc '快捷键'}" GroupName="nav" Tag="hotkey" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Content="{loc:Loc '外观与动效'}" GroupName="nav" Tag="appearance" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavManage" Style="{StaticResource NavItem}" Content="{loc:Loc '分类管理'}" GroupName="nav" Tag="manage" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavBackup" Style="{StaticResource NavItem}" Content="{loc:Loc '备份与恢复'}" GroupName="nav" Tag="backup" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}" Content="{loc:Loc '关于'}" GroupName="nav" Tag="about" Checked="Nav_Checked" />
                     </StackPanel>
-                    <TextBlock Grid.Row="2" Text="让常用工具触手可及" FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource TextHintBrush}" />
+                    <TextBlock Grid.Row="2" Text="{loc:Loc '让常用工具触手可及'}" FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource TextHintBrush}" />
                 </Grid>
             </Border>
             <Grid Grid.Column="1" Margin="30,26,30,22">
                 <Grid.RowDefinitions><RowDefinition Height="84" /><RowDefinition Height="*" /><RowDefinition Height="62" /></Grid.RowDefinitions>
                 <Grid MouseLeftButtonDown="Header_MouseDown">
                     <StackPanel>
-                        <TextBlock x:Name="PageTitle" Text="常规与启动" FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
-                        <TextBlock x:Name="PageDescription" Text="设置启动方式，以及启动台的日常行为。" FontSize="12" Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <TextBlock x:Name="PageTitle" Text="{loc:Loc '通用'}" FontSize="23" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="PageDescription" Text="{loc:Loc '设置启动方式，以及启动台的日常行为。'}" FontSize="12" Margin="0,8,0,0" Foreground="{DynamicResource TextSecondaryBrush}" />
                     </StackPanel>
-                    <Button Content="✕" Width="34" Height="34" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="保存并关闭" Click="CloseSettings_Click" />
+                    <Button Content="✕" Width="34" Height="34" Padding="0" HorizontalAlignment="Right" VerticalAlignment="Top" ToolTip="{loc:Loc '保存并关闭'}" Click="CloseSettings_Click" />
                 </Grid>
                 <Border Grid.Row="1" Background="{DynamicResource PanelBgBrush}" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" CornerRadius="16" Padding="22">
                     <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                         <Grid x:Name="SettingsPages">
                 <!-- 常规 -->
                 <StackPanel x:Name="PanelGeneral">
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="启动" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '语言'}" />
+                    <ComboBox x:Name="LanguageChoice" MinHeight="34" Margin="0,0,0,18" SelectionChanged="Language_Changed">
+                        <ComboBoxItem Content="简体中文" Tag="zh-CN" />
+                        <ComboBoxItem Content="English" Tag="en-US" />
+                    </ComboBox>
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '启动'}" />
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="开机自启" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '开机自启'}" />
                         <ToggleButton x:Name="AutoStartToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="AutoStart_Changed" Unchecked="AutoStart_Changed" />
                     </Grid>
@@ -256,18 +263,18 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="启动时最小化到托盘" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '启动时最小化到托盘'}" />
                         <ToggleButton x:Name="MinimizeTrayToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="Tray_Changed" Unchecked="Tray_Changed" />
                     </Grid>
 
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="行为" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '行为'}" />
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="单击启动应用（关闭则为双击启动）" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '单击启动应用（关闭则为双击启动）'}" />
                         <ToggleButton x:Name="SingleClickToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="LaunchMode_Changed" Unchecked="LaunchMode_Changed" />
                     </Grid>
@@ -276,24 +283,24 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="弹窗位置" Margin="0,0,20,0" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '弹窗位置'}" Margin="0,0,20,0" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <RadioButton x:Name="PosCenter" Style="{StaticResource OptionCard}" Content="屏幕居中"
+                            <RadioButton x:Name="PosCenter" Style="{StaticResource OptionCard}" Content="{loc:Loc '屏幕居中'}"
                                          GroupName="pos" Tag="Center" Checked="Pos_Changed" />
-                            <RadioButton x:Name="PosCursor" Style="{StaticResource OptionCard}" Content="跟随鼠标"
+                            <RadioButton x:Name="PosCursor" Style="{StaticResource OptionCard}" Content="{loc:Loc '跟随鼠标'}"
                                          GroupName="pos" Tag="Cursor" Checked="Pos_Changed" />
-                            <RadioButton x:Name="PosLast" Style="{StaticResource OptionCard}" Content="上次位置"
+                            <RadioButton x:Name="PosLast" Style="{StaticResource OptionCard}" Content="{loc:Loc '上次位置'}"
                                          GroupName="pos" Tag="Last" Checked="Pos_Changed" />
                         </StackPanel>
                     </Grid>
 
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="关闭方式" Margin="0,6,0,6" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '关闭方式'}" Margin="0,6,0,6" />
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="启动应用后自动关闭启动器" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '启动应用后自动关闭启动器'}" />
                         <ToggleButton x:Name="HideAfterLaunchToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="HideAfterLaunch_Changed" Unchecked="HideAfterLaunch_Changed" />
                     </Grid>
@@ -302,21 +309,21 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="焦点离开启动器时自动关闭" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '焦点离开启动器时自动关闭'}" />
                         <ToggleButton x:Name="HideOnFocusLostToggle" Grid.Column="1"
                                       Style="{StaticResource ToggleSwitch}" Checked="HideOnFocusLost_Changed" Unchecked="HideOnFocusLost_Changed" />
                     </Grid>
                     <TextBlock x:Name="GeneralHotkeyHint" Text="" FontSize="11"
                                Foreground="{DynamicResource TextHintBrush}" TextWrapping="Wrap" />
                     <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,18,0,16" />
-                    <TextBlock Text="拖拽悬停" Style="{StaticResource GroupTitle}" />
-                    <TextBlock Text="文件夹自动展开" Style="{StaticResource RowLabel}" Margin="0,6,0,8" />
+                    <TextBlock Text="{loc:Loc '拖拽悬停'}" Style="{StaticResource GroupTitle}" />
+                    <TextBlock Text="{loc:Loc '文件夹自动展开'}" Style="{StaticResource RowLabel}" Margin="0,6,0,8" />
                     <Grid Margin="0,0,0,16">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions>
                         <Slider x:Name="FolderHoverDelay" Style="{StaticResource HoverSlider}" Minimum="0.3" Maximum="5" ValueChanged="HoverDelay_Changed" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="1" Text="{Binding Value, ElementName=FolderHoverDelay, StringFormat={}{0:0.00} 秒}" Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
-                    <TextBlock Text="分类自动切换" Style="{StaticResource RowLabel}" Margin="0,0,0,8" />
+                    <TextBlock Text="{loc:Loc '分类自动切换'}" Style="{StaticResource RowLabel}" Margin="0,0,0,8" />
                     <Grid>
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="72" /></Grid.ColumnDefinitions>
                         <Slider x:Name="CategoryHoverDelay" Style="{StaticResource HoverSlider}" Minimum="0.3" Maximum="5" ValueChanged="HoverDelay_Changed" VerticalAlignment="Center" />
@@ -325,14 +332,14 @@
 
                 <!-- 快捷键 -->
                 <StackPanel x:Name="PanelHotkey" Visibility="Collapsed">
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="呼出快捷键" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '呼出快捷键'}" />
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="全局快捷键" Margin="0,0,16,0" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '全局快捷键'}" Margin="0,0,16,0" />
                         <Border Grid.Column="1" Background="{DynamicResource SearchBgBrush}" CornerRadius="10"
                                 Width="200" Height="34">
                             <TextBox x:Name="HotkeyInput" Background="Transparent" BorderThickness="0"
@@ -341,12 +348,12 @@
                                      IsReadOnly="True" PreviewKeyDown="HotkeyInput_PreviewKeyDown"
                                      LostFocus="HotkeyInput_LostFocus" />
                         </Border>
-                        <Button Grid.Column="2" x:Name="ModifyHotkeyBtn" Content="修改" Width="64" Height="32"
+                        <Button Grid.Column="2" x:Name="ModifyHotkeyBtn" Content="{loc:Loc '修改'}" Width="64" Height="32"
                                 Margin="10,0,0,0" Cursor="Hand" Click="ModifyHotkey_Click" />
                     </Grid>
                     <TextBlock x:Name="HotkeyStatus" FontSize="11" Foreground="{DynamicResource TextHintBrush}"
-                               Margin="0,2,0,0" Text="点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）" TextWrapping="Wrap" />
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="分类快捷键" Margin="0,22,0,10" />
+                               Margin="0,2,0,0" Text="{loc:Loc '点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）'}" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '分类快捷键'}" Margin="0,22,0,10" />
                     <ListBox x:Name="HotkeyCategoryList" Height="150" SelectionChanged="HotkeyCategoryList_SelectionChanged" Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
                         <ListBox.ItemTemplate><DataTemplate><StackPanel Orientation="Horizontal" Margin="8,7">
                             <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -354,17 +361,17 @@
                         </StackPanel></DataTemplate></ListBox.ItemTemplate>
                     </ListBox>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                        <Button x:Name="AddCatHotkeyBtn" Content="添加快捷键" Width="108" Height="34"
+                        <Button x:Name="AddCatHotkeyBtn" Content="{loc:Loc '添加快捷键'}" Width="108" Height="34"
                                 Cursor="Hand" Click="AddCatHotkey_Click" IsEnabled="False" />
-                        <Button x:Name="ClearCatHotkeyBtn" Content="删除快捷键" Width="108" Height="34" Margin="8,0,0,0" Cursor="Hand" Click="ClearCatHotkey_Click" IsEnabled="False" />
+                        <Button x:Name="ClearCatHotkeyBtn" Content="{loc:Loc '删除快捷键'}" Width="108" Height="34" Margin="8,0,0,0" Cursor="Hand" Click="ClearCatHotkey_Click" IsEnabled="False" />
                     </StackPanel>
                     <Border Margin="0,14,0,0" Padding="12,10" BorderThickness="1"
                             BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource SubPanelBgBrush}" CornerRadius="8">
                         <Grid>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="允许分类快捷键关闭窗口" FontSize="12.5"
+                                <TextBlock Text="{loc:Loc '允许分类快捷键关闭窗口'}" FontSize="12.5"
                                            Foreground="{DynamicResource TextPrimaryBrush}" />
-                                <TextBlock Text="开启后，若启动台已打开且当前就是该分类，按下快捷键可关闭窗口。" FontSize="11"
+                                <TextBlock Text="{loc:Loc '开启后，若启动台已打开且当前就是该分类，按下快捷键可关闭窗口。'}" FontSize="11"
                                            Foreground="{DynamicResource TextHintBrush}" Margin="0,3,0,0" TextWrapping="Wrap" />
                             </StackPanel>
                             <ToggleButton x:Name="AllowCatHotkeyCloseToggle" Style="{StaticResource ToggleSwitch}"
@@ -376,24 +383,24 @@
 
                 <!-- 外观 -->
                 <StackPanel x:Name="PanelAppearance" Visibility="Collapsed">
-                    <Button Content="打开主题中心 · 配色与背景" Click="OpenThemeCenter" Padding="12,10" Margin="0,0,0,14" HorizontalAlignment="Left" />
+                    <Button Content="{loc:Loc '打开主题中心 · 配色与背景'}" Click="OpenThemeCenter" Padding="12,10" Margin="0,0,0,14" HorizontalAlignment="Left" />
                     <Grid Margin="0,0,0,18">
-                        <TextBlock Text="主页显示主题按钮" Style="{StaticResource RowLabel}" />
+                        <TextBlock Text="{loc:Loc '主页显示主题按钮'}" Style="{StaticResource RowLabel}" />
                         <ToggleButton x:Name="ShowThemeButtonToggle" Style="{StaticResource ToggleSwitch}" HorizontalAlignment="Right" Checked="ShowThemeButton_Changed" Unchecked="ShowThemeButton_Changed" />
                     </Grid>
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="外观" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '外观'}" />
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="主题模式" Margin="0,0,20,0" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '主题模式'}" Margin="0,0,20,0" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <RadioButton x:Name="ThemeLight" Style="{StaticResource OptionCard}" Content="浅色"
+                            <RadioButton x:Name="ThemeLight" Style="{StaticResource OptionCard}" Content="{loc:Loc '浅色'}"
                                          GroupName="theme" Tag="Light" Checked="Theme_Changed" />
-                            <RadioButton x:Name="ThemeDark" Style="{StaticResource OptionCard}" Content="深色"
+                            <RadioButton x:Name="ThemeDark" Style="{StaticResource OptionCard}" Content="{loc:Loc '深色'}"
                                          GroupName="theme" Tag="Dark" Checked="Theme_Changed" />
-                            <RadioButton x:Name="ThemeSystem" Style="{StaticResource OptionCard}" Content="跟随系统"
+                            <RadioButton x:Name="ThemeSystem" Style="{StaticResource OptionCard}" Content="{loc:Loc '跟随系统'}"
                                          GroupName="theme" Tag="System" Checked="Theme_Changed" />
                         </StackPanel>
                     </Grid>
@@ -403,32 +410,32 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource RowLabel}" Text="图标大小" Margin="0,0,20,0" />
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '图标大小'}" Margin="0,0,20,0" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <RadioButton x:Name="SizeSmall" Style="{StaticResource OptionCard}" Content="小"
+                            <RadioButton x:Name="SizeSmall" Style="{StaticResource OptionCard}" Content="{loc:Loc '小'}"
                                          GroupName="size" Tag="Small" Checked="Size_Changed" />
-                            <RadioButton x:Name="SizeMedium" Style="{StaticResource OptionCard}" Content="中"
+                            <RadioButton x:Name="SizeMedium" Style="{StaticResource OptionCard}" Content="{loc:Loc '中'}"
                                          GroupName="size" Tag="Medium" Checked="Size_Changed" />
-                            <RadioButton x:Name="SizeLarge" Style="{StaticResource OptionCard}" Content="大"
+                            <RadioButton x:Name="SizeLarge" Style="{StaticResource OptionCard}" Content="{loc:Loc '大'}"
                                          GroupName="size" Tag="Large" Checked="Size_Changed" />
                         </StackPanel>
                     </Grid>
 
                     <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,14,0,20" />
-                    <TextBlock Text="动画过渡" Style="{StaticResource GroupTitle}" />
-                    <TextBlock Text="应用于窗口、分类、文件夹与拖动让位。" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,14" />
+                    <TextBlock Text="{loc:Loc '动画过渡'}" Style="{StaticResource GroupTitle}" />
+                    <TextBlock Text="{loc:Loc '应用于窗口、分类、文件夹与拖动让位。'}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,2,0,14" />
                     <StackPanel Orientation="Horizontal">
-                        <RadioButton x:Name="AnimationOff" Content="关闭" Tag="Off" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
-                        <RadioButton x:Name="AnimationFast" Content="快速" Tag="Fast" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
-                        <RadioButton x:Name="AnimationBalanced" Content="均衡" Tag="Balanced" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
-                        <RadioButton x:Name="AnimationOptimized" Content="优化" Tag="Optimized" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
+                        <RadioButton x:Name="AnimationOff" Content="{loc:Loc '关闭'}" Tag="Off" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
+                        <RadioButton x:Name="AnimationFast" Content="{loc:Loc '快速'}" Tag="Fast" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
+                        <RadioButton x:Name="AnimationBalanced" Content="{loc:Loc '均衡'}" Tag="Balanced" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
+                        <RadioButton x:Name="AnimationOptimized" Content="{loc:Loc '优化'}" Tag="Optimized" GroupName="animation" Style="{StaticResource OptionCard}" Checked="Animation_Changed" />
                     </StackPanel>
-                    <TextBlock x:Name="AnimationDescription" Text="兼顾响应速度与视觉连续性。" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,14,0,0" TextWrapping="Wrap" />                </StackPanel>
+                    <TextBlock x:Name="AnimationDescription" Text="{loc:Loc '兼顾响应速度与视觉连续性。'}" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,14,0,0" TextWrapping="Wrap" />                </StackPanel>
 
                 <!-- 分类管理 -->
                 <StackPanel x:Name="PanelManage" Visibility="Collapsed">
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="分类管理" />
-                    <TextBlock Text="按住分类行上下拖动排序，顺序会同步到主页。删除分类不会删除磁盘文件。" FontSize="11"
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '分类管理'}" />
+                    <TextBlock Text="{loc:Loc '按住分类行上下拖动排序，顺序会同步到主页。删除分类不会删除磁盘文件。'}" FontSize="11"
                                Foreground="{DynamicResource TextHintBrush}" Margin="0,0,0,10" />
                     <ListBox x:Name="CategoryList" Height="220" BorderThickness="1"
                              BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource SubPanelBgBrush}"
@@ -448,19 +455,50 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button x:Name="RenameCatBtn" Content="重命名" Width="72" Height="34" Margin="0,0,8,0"
+                        <Button x:Name="RenameCatBtn" Content="{loc:Loc '重命名'}" Width="72" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="RenameCat_Click" IsEnabled="False" />
-                        <Button x:Name="DeleteCatBtn" Content="删除分类" Width="86" Height="34" Margin="0,0,8,0"
+                        <Button x:Name="DeleteCatBtn" Content="{loc:Loc '删除分类'}" Width="86" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="DeleteCat_Click" IsEnabled="False" />
-                        <Button Content="清空全部条目" Width="96" Height="34" Margin="0,0,8,0"
+                        <Button Content="{loc:Loc '清空全部条目'}" Width="96" Height="34" Margin="0,0,8,0"
                                 Cursor="Hand" Click="ClearAll_Click" />
 
                     </StackPanel>
                 </StackPanel>
 
+                <StackPanel x:Name="PanelBackup" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '恢复出厂设置'}" />
+                    <TextBlock Text="{loc:Loc '清空分类与条目，重置所有设置；已保存和自动备份点都会保留。不会删除磁盘中的原文件。'}" TextWrapping="Wrap" Margin="0,0,0,10" Foreground="{DynamicResource TextSecondaryBrush}" />
+                    <Button Content="{loc:Loc '恢复出厂设置…'}" Click="FactoryReset_Click" HorizontalAlignment="Left" Padding="14,8" Margin="0,0,0,20" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '自动备份'}" />
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Style="{StaticResource RowLabel}" Text="{loc:Loc '修改后自动创建备份点'}" />
+                        <ToggleButton x:Name="AutoBackupToggle" HorizontalAlignment="Right" Style="{StaticResource ToggleSwitch}" Checked="AutoBackup_Changed" Unchecked="AutoBackup_Changed" />
+                    </Grid>
+                    <TextBlock Text="{loc:Loc '设置、条目位置或图标背景变化后备份。自动记录最多保留 30 条；点击保存后长期保留。'}" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16" />
+                    <WrapPanel Margin="0,0,0,20">
+                        <Button Content="{loc:Loc '立即备份'}" Click="CreateBackup_Click" Padding="14,8" Margin="0,0,8,6" />
+                        <Button Content="{loc:Loc '导入备份'}" Click="ImportBackup_Click" Padding="14,8" Margin="0,0,8,6" />
+                    </WrapPanel>
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '备份点'}" />
+                    <TextBlock x:Name="BackupStatus" TextWrapping="Wrap" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,10" />
+                    <ListBox x:Name="BackupList" Height="115" Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" SelectionChanged="BackupList_SelectionChanged">
+                        <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="8,7">
+                            <TextBlock Text="{Binding Name}" Foreground="{DynamicResource TextPrimaryBrush}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource TextSecondaryBrush}" FontSize="11" Margin="0,5,0,0" />
+                        </StackPanel></DataTemplate></ListBox.ItemTemplate>
+                    </ListBox>
+                    <WrapPanel x:Name="BackupActions" IsEnabled="False" Margin="0,12,0,0">
+                        <Button Content="{loc:Loc '恢复'}" Click="RestoreBackup_Click" Padding="12,7" Margin="0,0,7,7" />
+                        <Button x:Name="SaveBackupButton" Content="{loc:Loc '保存'}" Click="SaveBackup_Click" Padding="12,7" Margin="0,0,7,7" />
+                        <Button Content="{loc:Loc '重命名'}" Click="RenameBackup_Click" Padding="12,7" Margin="0,0,7,7" />
+                        <Button Content="{loc:Loc '导出'}" Click="ExportBackup_Click" Padding="12,7" Margin="0,0,7,7" />
+                        <Button Content="{loc:Loc '删除'}" Click="DeleteBackup_Click" Padding="12,7" Margin="0,0,7,7" />
+                    </WrapPanel>
+                    <TextBlock Text="{loc:Loc '配置、自定义图标与背景打包为 .qdtbackup。导入后可选择恢复。'}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextHintBrush}" Margin="0,8,0,0" />
+                </StackPanel>
                 <!-- 关于 -->
                 <StackPanel x:Name="PanelAbout" Visibility="Collapsed">
-                    <TextBlock Style="{StaticResource GroupTitle}" Text="关于" />
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '关于'}" />
                     <TextBlock Text="LaunchPad" FontSize="20" FontWeight="SemiBold"
                                Foreground="{DynamicResource TextPrimaryBrush}" Margin="0,6,0,4" />
                     <TextBlock Text="轻量级 Windows 应用分类启动器 · v0.95" FontSize="12"
@@ -475,8 +513,8 @@
                     </ScrollViewer>
                 </Border>
                 <Grid Grid.Row="2" Margin="0,18,0,0">
-                    <TextBlock Text="点击完成保存设置" FontSize="11" Foreground="{DynamicResource TextHintBrush}" VerticalAlignment="Center" />
-                    <Button Content="完成" Width="96" Height="40" Background="{DynamicResource AccentDeepBrush}" Foreground="White" BorderThickness="0"
+                    <TextBlock Text="{loc:Loc '设置会自动保存'}" FontSize="11" Foreground="{DynamicResource TextHintBrush}" VerticalAlignment="Center" />
+                    <Button Content="{loc:Loc '完成'}" Width="96" Height="40" Background="{DynamicResource AccentDeepBrush}" Foreground="White" BorderThickness="0"
                             HorizontalAlignment="Right" Click="Done_Click" />
                 </Grid>
             </Grid>

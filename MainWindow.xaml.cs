@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.CodeDom.Compiler;
 using System.Collections;
 using System.Collections.Generic;
@@ -50,7 +50,7 @@ namespace LaunchPad
 				{
 					return Category.Name;
 				}
-				return "全部";
+				return AppLanguage.T("全部");
 			}
 		}
 
@@ -487,7 +487,7 @@ namespace LaunchPad
 			if (tab != null) SelectTab(tab);
 		}
 
-		/// <summary>公开方法：获取当前活动分类（"全部"视图返回 null）。</summary>
+		/// <summary>公开方法：获取当前活动分类（AppLanguage.T("全部")视图返回 null）。</summary>
 		public AppCategory GetActiveCategory() => _activeTab?.Category;
 
 		private void RebuildAll()
@@ -656,7 +656,7 @@ namespace LaunchPad
 
 		private void AddCategory_Click(object sender, RoutedEventArgs e)
 		{
-			string name = WithFeatureDialog(() => PromptDialog.Show(this, "新建分类", "请输入分类名称", ""));
+			string name = WithFeatureDialog(() => PromptDialog.Show(this, AppLanguage.T("新建分类"), "请输入分类名称", ""));
 			if (!string.IsNullOrWhiteSpace(name))
 			{
 				name = name.Trim();

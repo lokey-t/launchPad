@@ -35,6 +35,9 @@ public partial class SettingsWindow : Window
         // 若此时写入配置会把用户已保存的悬停秒数覆盖为最小值；先屏蔽事件写入。
         _refreshing = true;
         InitializeComponent();
+        var languageStyles=new ResourceDictionary { Source=new Uri("pack://application:,,,/LaunchPad;component/Themes/ThemeCenter.xaml") };
+        LanguageChoice.Style=(Style)languageStyles[typeof(ComboBox)];
+        LanguageChoice.ItemContainerStyle=(Style)languageStyles[typeof(ComboBoxItem)];
         _refreshing = false;
         SettingsSurfaceContent.SizeChanged+=(_,_)=>ClipSettingsSurface();
         IsVisibleChanged+=(_,_)=>ClipSettingsSurface();
@@ -42,6 +45,7 @@ public partial class SettingsWindow : Window
         InputBehavior.Apply(this);
         InitializeCategorySorting();
         InitializeHoverMagnets();
+        InitializeBackups();
         Closing += SettingsWindow_Closing;
     }
 
@@ -61,6 +65,7 @@ public partial class SettingsWindow : Window
         _refreshing = true;
         _capturing = false;
         var c = _app.Config;
+        LanguageChoice.SelectedIndex=c.Language=="en-US"?1:0;
         AutoStartToggle.IsChecked = c.AutoStart;
         MinimizeTrayToggle.IsChecked = c.MinimizeToTray;
         SingleClickToggle.IsChecked = c.LaunchMode == "Single";
@@ -68,7 +73,7 @@ public partial class SettingsWindow : Window
         HideOnFocusLostToggle.IsChecked = c.HideOnFocusLost;
 
         HotkeyInput.Text = MainWindow.FormatHotkey(c.HotkeyModifiers, c.HotkeyKey);
-        HotkeyStatus.Text = "点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）";
+        HotkeyStatus.Text = AppLanguage.T("点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）");
 
         switch (c.Theme)
         {
@@ -96,11 +101,15 @@ public partial class SettingsWindow : Window
         FolderHoverDelay.Value = c.FolderHoverSeconds;
         CategoryHoverDelay.Value = c.CategoryHoverSeconds;
         ShowThemeButtonToggle.IsChecked=c.ShowThemeButton;
-        GeneralHotkeyHint.Text = $"按 {MainWindow.FormatHotkey(c.HotkeyModifiers, c.HotkeyKey)} 随时呼出或隐藏启动台。";
-        AboutPathText.Text = $"配置文件：{ConfigService.ConfigPath}";
+        GeneralHotkeyHint.Text = string.Format(AppLanguage.T("按 {0} 随时呼出或隐藏启动台。"),MainWindow.FormatHotkey(c.HotkeyModifiers, c.HotkeyKey));
+        AboutPathText.Text = AppLanguage.T("配置文件：")+ConfigService.ConfigPath;
         AllowCatHotkeyCloseToggle.IsChecked = _app.Config.AllowCategoryHotkeyToClose;
         RefreshCategoryList();
+        AutoBackupToggle.IsChecked = c.AutoBackup;
+        RefreshBackups();
         _refreshing = false;
+        var selectedPage=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
+        if(selectedPage!=null) Nav_Checked(selectedPage,new RoutedEventArgs());
         var selectedMode = new[] { AnimationOff, AnimationFast, AnimationBalanced, AnimationOptimized }
             .FirstOrDefault(option => option.IsChecked == true);
         if (selectedMode != null) Animation_Changed(selectedMode, new RoutedEventArgs());
@@ -115,9 +124,22 @@ public partial class SettingsWindow : Window
         CategoryList.ItemsSource = _app.Config.Categories;
         CategoryList.SelectedItem = null;
         RenameCatBtn.IsEnabled = DeleteCatBtn.IsEnabled = AddCatHotkeyBtn.IsEnabled = false;
-        AddCatHotkeyBtn.Content = "添加快捷键";
+        AddCatHotkeyBtn.Content = AppLanguage.T("添加快捷键");
         ClearCatHotkeyBtn.IsEnabled = false;
         HotkeyCategoryList.SelectedItem=selectedHotkey;
+    }
+
+    private void Language_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if(_refreshing || LanguageChoice.SelectedItem is not ComboBoxItem choice) return;
+        var previous=_app.Config.Language;
+        _app.Config.Language=(string)choice.Tag;
+        if(!ConfigService.Save(_app.Config)) { _app.Config.Language=previous; RefreshFromConfig(); return; }
+        AppLanguage.SetLanguage(_app.Config.Language);
+        RefreshFromConfig();
+        _app.RefreshMainWindow();
+        var selected=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
+        if(selected!=null) Nav_Checked(selected,new RoutedEventArgs());
     }
 
     // ---------- 导航 ----------
@@ -129,11 +151,12 @@ public partial class SettingsWindow : Window
         var tag = (sender as RadioButton)?.Tag as string;
         var headings = tag switch
         {
-            "hotkey" => ("快捷键", "从任何应用，一键回到启动台。"),
-            "appearance" => ("外观与动效", "选择适合你的视觉风格与操作节奏。"),
-            "manage" => ("分类管理", "整理分类，让常用工具各就其位。"),
-            "about" => ("关于 LaunchPad", "轻量、专注的桌面应用启动器。"),
-            _ => ("常规与启动", "设置启动方式，以及启动台的日常行为。")
+            "hotkey" => (AppLanguage.T("快捷键"), AppLanguage.T("从任何应用，一键回到启动台。")),
+            "appearance" => (AppLanguage.T("外观与动效"), AppLanguage.T("选择适合你的视觉风格与操作节奏。")),
+            "manage" => (AppLanguage.T("分类管理"), AppLanguage.T("整理分类，让常用工具各就其位。")),
+            "backup" => (AppLanguage.T("备份与恢复"), AppLanguage.T("保留每一次整理，随时回到熟悉的启动台。")),
+            "about" => (AppLanguage.T("关于 LaunchPad"), AppLanguage.T("轻量、专注的桌面应用启动器。")),
+            _ => (AppLanguage.T("通用"), AppLanguage.T("设置启动方式，以及启动台的日常行为。"))
         };
         PageTitle.Text = headings.Item1;
         PageDescription.Text = headings.Item2;
@@ -142,6 +165,7 @@ public partial class SettingsWindow : Window
         PanelAppearance.Visibility = tag == "appearance" ? Visibility.Visible : Visibility.Collapsed;
         PanelManage.Visibility = tag == "manage" ? Visibility.Visible : Visibility.Collapsed;
         PanelAbout.Visibility = tag == "about" ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelBackup != null) PanelBackup.Visibility = tag == "backup" ? Visibility.Visible : Visibility.Collapsed;
         SettingsScroll.ScrollToTop();
         SettingsPages.BeginAnimation(UIElement.OpacityProperty,
             new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(MotionService.Duration(_app.Config, 160))));
@@ -211,6 +235,7 @@ public partial class SettingsWindow : Window
             var background = _app.Config.GlobalTheme;
             _app.Config.GlobalTheme = null;
             var palette = ThemeService.Global(_app.Config);
+            if (background != null) palette.Extra = background.Extra;
             if (background != null) { palette.BackgroundPath=background.BackgroundPath; palette.BackgroundDim=background.BackgroundDim; palette.Material=background.Material; palette.GlassOpacity=background.GlassOpacity; palette.GlassBlurStrength=background.GlassBlurStrength; palette.GlassColorDepth=background.GlassColorDepth; palette.IconBackground=background.IconBackground; palette.IconOpacity=background.IconOpacity; palette.IconBorderMode=background.IconBorderMode; palette.IconBorderColor=background.IconBorderColor; palette.IconBorderWidth=background.IconBorderWidth; palette.IconShadowDirection=background.IconShadowDirection; _app.Config.GlobalTheme=palette; }
             _app.ApplyTheme(t);
             _app.RefreshMainTheme();
@@ -256,7 +281,7 @@ public partial class SettingsWindow : Window
             "Off" => "即时切换，无过渡动画。",
             "Fast" => "缩短过渡时间，让操作更利落。",
             "Optimized" => "更柔和的减速曲线，强调连续、舒展的运动。",
-            _ => "兼顾响应速度与视觉连续性。"
+            _ => AppLanguage.T("兼顾响应速度与视觉连续性。")
         };
     }
 
@@ -367,7 +392,7 @@ public partial class SettingsWindow : Window
     {
         _capturing = false;
         HotkeyInput.Text = MainWindow.FormatHotkey(_app.Config.HotkeyModifiers, _app.Config.HotkeyKey);
-        HotkeyStatus.Text = "点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）";
+        HotkeyStatus.Text = AppLanguage.T("点击“修改”后按下新的组合键（如 Ctrl + Alt + Q）");
     }
 
     // ---------- 分类管理 ----------
@@ -386,7 +411,7 @@ public partial class SettingsWindow : Window
         bool has=cat!=null;
         AddCatHotkeyBtn.IsEnabled = has;
         bool hasHotkey = has && (cat.HotkeyModifiers != 0 || cat.HotkeyKey != 0);
-        AddCatHotkeyBtn.Content = hasHotkey ? "修改快捷键" : "添加快捷键";
+        AddCatHotkeyBtn.Content = hasHotkey ? "修改快捷键" : AppLanguage.T("添加快捷键");
         ClearCatHotkeyBtn.IsEnabled = hasHotkey;
     }
 
@@ -408,7 +433,7 @@ public partial class SettingsWindow : Window
     private void DeleteCat_Click(object sender, RoutedEventArgs e)
     {
         if (CategoryList.SelectedItem is not AppCategory cat) return;
-        var r = PromptDialog.Confirm(this, "删除分类",
+        var r = PromptDialog.Confirm(this, AppLanguage.T("删除分类"),
             $"删除分类“{cat.Name}”？其中 {cat.Entries.Count} 个条目将一并移除（磁盘文件不受影响）。");
         if (!r) return;
         _app.Config.Categories.Remove(cat);
@@ -446,7 +471,7 @@ public partial class SettingsWindow : Window
             // 清除快捷键
             cat.HotkeyModifiers = 0;
             cat.HotkeyKey = 0;
-            AddCatHotkeyBtn.Content = "添加快捷键";
+            AddCatHotkeyBtn.Content = AppLanguage.T("添加快捷键");
             RefreshCategoryList();
             HotkeyCategoryList.SelectedItem = _app.Config.Categories.FirstOrDefault(c => c.Id == capturedId);
             _app.SaveConfig();
@@ -482,7 +507,7 @@ public partial class SettingsWindow : Window
         if (HotkeyCategoryList.SelectedItem is not AppCategory cat) return;
         cat.HotkeyModifiers = 0;
         cat.HotkeyKey = 0;
-        AddCatHotkeyBtn.Content = "添加快捷键";
+        AddCatHotkeyBtn.Content = AppLanguage.T("添加快捷键");
         ClearCatHotkeyBtn.IsEnabled = false;
         var capturedId = cat.Id;
         RefreshCategoryList();

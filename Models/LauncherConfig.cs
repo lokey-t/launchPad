@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Text.Json.Serialization;
 
 namespace LaunchPad.Models;
@@ -6,6 +6,8 @@ namespace LaunchPad.Models;
 /// <summary>分类（Tab 栏中的一个分类）。</summary>
 public class AppCategory : ObservableObject
 {
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
     private ThemeProfile _themeOverride;
     public ThemeProfile ThemeOverride
     {
@@ -46,6 +48,12 @@ public class AppCategory : ObservableObject
 /// <summary>全局配置。</summary>
 public class LauncherConfig
 {
+    [JsonIgnore]
+    public System.Text.Json.Nodes.JsonObject OriginalDocument { get; set; }
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
+    public string Language { get; set; } = "zh-CN";
+    public bool AutoBackup { get; set; }
     public ThemeProfile GlobalTheme { get; set; }
     public bool ShowThemeButton { get; set; } = true;
     /// <summary>呼出快捷键修饰键：Ctrl=2, Alt=1, Shift=4, Win=8（可组合）。</summary>

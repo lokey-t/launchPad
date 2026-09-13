@@ -2,6 +2,9 @@
 
 public class ThemeProfile
 {
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
+    public string SourceVersion { get; set; }
     public string Name { get; set; } = "自定义";
     public string BaseTheme { get; set; } = "Light";
     public string Material { get; set; } = "Solid";
@@ -25,5 +28,5 @@ public class ThemeProfile
     public double IconShadowDirection { get; set; } = 270;
     public double IconShadowDepth { get; set; } = 3;
     public double IconShadowStrength { get; set; } = .3;
-    public ThemeProfile Copy() => (ThemeProfile)MemberwiseClone();
+    public ThemeProfile Copy() { var copy=(ThemeProfile)MemberwiseClone(); copy.Extra=Extra?.ToDictionary(p=>p.Key,p=>p.Value.Clone()); return copy; }
 }

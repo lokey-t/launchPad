@@ -103,13 +103,13 @@ public static class PromptDialog
         }
         window.Closing += (_, e) => { if (allowClose) return; e.Cancel = true; Finish(false); };
         close.Click += (_, _) => Finish(false);
-        var cancelBtn = MakeButton("取消", false, 84); cancelBtn.Margin = new Thickness(0, 0, 10, 0);
+        var cancelBtn = MakeButton(AppLanguage.T("取消"), false, 84); cancelBtn.Margin = new Thickness(0, 0, 10, 0);
         cancelBtn.Click += (_, _) => Finish(false); buttons.Children.Add(cancelBtn);
         var clearBtn = MakeButton("清除", false, 84); clearBtn.Margin = new Thickness(0, 0, 10, 0);
         clearBtn.IsEnabled = hasCapture;
         clearBtn.Click += (_, _) => { capturedMods = 0; capturedKey = 0; hasCapture = false; result = (0, 0); Finish(true); };
         buttons.Children.Add(clearBtn);
-        var okBtn = MakeButton("确定", true, 100); okBtn.IsEnabled = hasCapture;
+        var okBtn = MakeButton(AppLanguage.T("确定"), true, 100); okBtn.IsEnabled = hasCapture;
         okBtn.Click += (_, _) => Finish(true); buttons.Children.Add(okBtn);
         layout.Children.Add(buttons);
 
@@ -179,7 +179,7 @@ public static class PromptDialog
     {
         Brush Resource(string key) => (Brush)(owner?.TryFindResource(key)??Application.Current.FindResource(key));
         var config = (Application.Current as App)?.Config ?? new LauncherConfig();
-        bool dismissOnBackdrop = input && title == "新建分类";
+        bool dismissOnBackdrop = input && title == AppLanguage.T("新建分类");
         var window = new Window
         {
             Owner = owner, Title = title, Width = 456, SizeToContent = SizeToContent.Height,
@@ -250,10 +250,10 @@ public static class PromptDialog
         close.Click += (_,_) => Finish(false);
         if (cancel)
         {
-            var cancelButton = Button("取消", false, 84); cancelButton.Margin = new Thickness(0,0,10,0);
+            var cancelButton = Button(AppLanguage.T("取消"), false, 84); cancelButton.Margin = new Thickness(0,0,10,0);
             cancelButton.Click += (_,_) => Finish(false); buttons.Children.Add(cancelButton);
         }
-        var ok = Button(input && title.Contains("新建") ? "创建分类" : "确定", true, 100);
+        var ok = Button(input && title.Contains("新建") ? "创建分类" : AppLanguage.T("确定"), true, 100);
         ok.IsEnabled = !input || !string.IsNullOrWhiteSpace(box.Text);
         box.TextChanged += (_,_) => ok.IsEnabled = !string.IsNullOrWhiteSpace(box.Text);
         ok.Click += (_,_) => Finish(true); buttons.Children.Add(ok); layout.Children.Add(buttons);

@@ -8,6 +8,8 @@ namespace LaunchPad.Models;
 [JsonDerivedType(typeof(AppFolder), "folder")]
 public abstract class AppEntry : ObservableObject
 {
+    [JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement> Extra { get; set; }
     private string _name;
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 

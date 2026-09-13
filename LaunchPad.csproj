@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -20,6 +20,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Locales/en.json" />
+    <Compile Remove="Tests\**\*.cs" />
     <!-- 避免 WPF + WinForms 的全局 using 命名冲突（WinForms/System.Drawing 类型在代码中显式引用） -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />

@@ -21,6 +21,8 @@ public partial class App : Application
     private const int CategoryHotkeyBaseId = 0x0D01;
     private System.Windows.Forms.NotifyIcon _tray;
     private bool _isQuitting;
+    private readonly CancellationTokenSource _backupCancellation = new();
+    private DispatcherTimer _backupTimer;
 
     /// <summary>是否正在退出程序（设置窗口据此决定是否允许真正关闭）。</summary>
     public bool IsQuitting => _isQuitting;
@@ -55,6 +57,8 @@ public partial class App : Application
         _mutex = new Mutex(true, "LaunchPad_SingleInstance", out var createdNew);
         if (!createdNew)
         {
+            var backupFile = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
+            if (backupFile != null && BackupFileAssociation.Forward(backupFile)) { Shutdown(); return; }
             var shortcut = ConfigService.ReadHotkey();
             MessageBox.Show($"软件已运行，按 {LaunchPad.MainWindow.FormatHotkey(shortcut.Modifiers, shortcut.Key)} 打开主界面。",
                 "LaunchPad 已在运行", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -63,6 +67,7 @@ public partial class App : Application
         }
 
         Config = ConfigService.Load();
+        AppLanguage.SetLanguage(Config.Language);
         SmoothScrollService.Initialize();
         ApplyTheme(Config.Theme);
 
@@ -71,6 +76,12 @@ public partial class App : Application
 
         SetupHotkey();
         SetupTray();
+        try { BackupFileAssociation.Register(); }
+        catch (Exception ex) { System.Diagnostics.Trace.WriteLine("备份文件关联注册失败：" + ex.Message); }
+        _ = Task.Run(() => BackupFileAssociation.Listen(path => Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(path))), _backupCancellation.Token));
+        _backupTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        _backupTimer.Tick += (_, _) => BackupService.CheckExternalChanges(Config);
+        _backupTimer.Start();
 
         if (Config.MinimizeToTray && Config.AutoStart)
         {
@@ -80,6 +91,29 @@ public partial class App : Application
         {
             ShowMain();
         }
+        var initialBackup = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
+        if (initialBackup != null) Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(initialBackup)));
+    }
+
+    private void OpenBackupFile(string path)
+    {
+        OpenSettings();
+        _settingsWindow.Activate();
+        _settingsWindow.OpenBackupFile(path);
+    }
+
+    public void RestoreConfig(LauncherConfig config)
+    {
+        if (!ConfigService.Save(config)) throw new System.IO.IOException("恢复配置未能写入磁盘，当前配置保持不变。");
+        Config = config;
+        AppLanguage.SetLanguage(Config.Language);
+        StartupService.SetEnabled(Config.AutoStart);
+        ApplyTheme(Config.Theme);
+        ReRegisterHotkey();
+        RefreshMainWindow();
+        RefreshMainTheme();
+        _settingsWindow.RefreshFromConfig();
+        ApplyPosition();
     }
 
     // ---------- 主界面显隐 ----------
@@ -289,6 +323,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _backupTimer?.Stop();
+        _backupCancellation.Cancel();
         // Mutex 冲突/启动失败时 Config 尚未加载，禁止把 null 覆盖写入用户配置
         if (Config != null)
             ConfigService.Save(Config);

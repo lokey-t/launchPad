@@ -33,6 +33,8 @@ public static class ThemeService
     {
         var result = Global(config);
         if (category?.ThemeOverride is not ThemeProfile local) return result;
+        if(local.Extra!=null) { result.Extra??=new(); foreach(var pair in local.Extra) result.Extra[pair.Key]=pair.Value.Clone(); }
+        if(ThemePresetService.IsNewer(local.SourceVersion)) result.SourceVersion=local.SourceVersion;
         if (local.OverrideColors)
         {
             result.Name = local.Name; result.BaseTheme = local.BaseTheme;
