@@ -28,6 +28,8 @@ Supports Windows 10 / 11 x64. Setup detects existing installations; select the o
 
 ## Features
 
+The single EXE installer is approximately 129 MB, exceeding Gitee's 100 MB attachment limit. Use the [direct GitHub installer download](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe). Both ZIP packages are available on either host.
+
 - **Apps and folders:** add files or shortcuts by dropping them into the launcher. Search, choose single- or double-click launching, and customize display names and icons. Duplicate imports show a Toast with the existing entry and category.
 - **Continuous drag and drop:** animated reordering in the main grid and folders. Drop directly onto a folder to move inside, or hover to open it and choose a position. Dragging out closes the folder and continues the same drag. Press Esc to cancel an internal drag.
 - **Categories:** drag or wheel-scroll the category strip, including edge scrolling while dragging files. Reorder categories in Settings. Change an entry's category from its context menu.

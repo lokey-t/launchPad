@@ -1,7 +1,7 @@
 """Publish LaunchPad release assets using credentials already stored by Git.
 Requires explicit --execute for mutations. Never prints or stores credentials.
 """
-import argparse, concurrent.futures, hashlib, json, os, pathlib, re, subprocess, sys
+import argparse, concurrent.futures, hashlib, json, os, pathlib, re, subprocess, sys, time, http.client
 import urllib.request, urllib.parse, urllib.error, uuid
 
 REPO = "lokey-t/launchPad"
@@ -47,7 +47,14 @@ class Publisher:
     def release(self):
         try:return self.request("/releases/tags/"+self.tag)
         except RuntimeError as e:
-            if "HTTP 404:" in str(e):return None
+            if "HTTP 404:" in str(e):
+                # GitHub's tag endpoint does not always expose an unpublished draft.
+                for page in range(1,20):
+                    batch=self.request(f"/releases?per_page=100&page={page}")
+                    for release in batch:
+                        if release.get("tag_name")==self.tag:return release
+                    if len(batch)<100:return None
+                raise RuntimeError("Release pagination did not terminate")
             raise
 
     def assets(self, release):
@@ -68,8 +75,15 @@ class Publisher:
             # Attachment listing may omit the public URL. Use the documented download route.
             url=self.base+f"/releases/{self.release_id}/attach_files/{asset['id']}/download"
             headers={"User-Agent":"LaunchPad-Release","Authorization":"Bearer "+self.token}
-        with self.opener.open(urllib.request.Request(url,headers=headers),timeout=300) as response:
-            return hashlib.file_digest(response,"sha256").hexdigest()
+        for attempt in range(3):
+            try:
+                with self.opener.open(urllib.request.Request(url,headers=headers),timeout=300) as response:
+                    return hashlib.file_digest(response,"sha256").hexdigest()
+            except urllib.error.HTTPError as error:
+                if error.code not in (408,429,500,502,503,504) or attempt==2:raise
+            except (OSError,http.client.HTTPException):
+                if attempt==2:raise
+            time.sleep(attempt+1)
 
     def matches(self, asset, path):
         digest=asset.get("digest","") or ""
@@ -88,9 +102,12 @@ def main():
     p.add_argument("host",choices=["github","gitee"]);p.add_argument("mode",choices=["prepare","upload","verify","publish"])
     p.add_argument("--version",required=True);p.add_argument("--assets",type=pathlib.Path);p.add_argument("--notes",type=pathlib.Path,default=pathlib.Path("RELEASE_NOTES.md"))
     p.add_argument("--commit");p.add_argument("--execute",action="store_true");p.add_argument("--workers",type=int,default=3)
+    p.add_argument("--external-installer",action="store_true",help="Gitee only: verify the oversized setup on GitHub and link it from release notes")
+    p.add_argument("--metadata-only",action="store_true",help="Gitee verify/publish only: check attachment names and sizes when bulk downloads are blocked; does not claim byte verification")
     a=p.parse_args()
     if not re.fullmatch(r"\d+\.\d+(\.\d+){0,2}",a.version):p.error("Use a numeric version")
     if a.mode!="verify" and not a.execute:p.error("Mutations require --execute and prior user authorization")
+    if a.metadata_only and (a.host!="gitee" or a.mode not in ("verify","publish")):p.error("Metadata-only mode is limited to Gitee verify/publish")
     pub=Publisher(a.host,a.version);release=pub.release()
     if a.mode=="prepare":
         if not a.commit or not re.fullmatch("[a-f0-9]{40}",a.commit):p.error("--commit must be a full, already pushed commit SHA")
@@ -113,28 +130,45 @@ def main():
     if {f.name for f in files}!={*expected,sums.name}:raise RuntimeError("Unexpected or missing local asset")
     for f in files:
         if f.name in expected and sha(f)!=expected[f.name]:raise RuntimeError("Local checksum mismatch: "+f.name)
+    if a.external_installer:
+        if a.host!="gitee":p.error("--external-installer is only supported for Gitee")
+        installer=a.assets/f"LaunchPad-v{a.version}-win-x64-setup.exe"
+        link=f"https://github.com/{REPO}/releases/download/v{a.version}/{installer.name}"
+        if link not in a.notes.read_text(encoding="utf-8"):raise RuntimeError("Release notes must disclose and link the external installer")
+        github=Publisher("github",a.version);github_release=github.release()
+        if not github_release:raise RuntimeError("GitHub release missing")
+        asset=next((x for x in github.assets(github_release) if x["name"]==installer.name),None)
+        if not asset or not github.matches(asset,installer):raise RuntimeError("External installer is not verified on GitHub")
+        if a.mode=="publish" and (github_release.get("draft") or github_release.get("prerelease")):raise RuntimeError("Publish the GitHub installer before linking it from the stable Gitee release")
+        files=[f for f in files if f!=installer]
+        print("Verified external installer on GitHub; Gitee file limit fallback enabled",flush=True)
     existing={x["name"]:x for x in pub.assets(release)}
     def work(path):
         asset=existing.get(path.name)
         if asset is not None:
-            if not pub.matches(asset,path):raise RuntimeError("Existing asset differs; refusing replacement: "+path.name)
+            if a.metadata_only:
+                if asset.get("size")!=path.stat().st_size:raise RuntimeError("Remote attachment size differs: "+path.name)
+            elif not pub.matches(asset,path):raise RuntimeError("Existing asset differs; refusing replacement: "+path.name)
         elif a.mode=="upload":
             asset=pub.upload(release,path)
             if not pub.matches(asset,path):raise RuntimeError("Uploaded bytes differ: "+path.name)
         else:raise RuntimeError("Missing remote asset: "+path.name)
         return path.name
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1,min(4,a.workers))) as pool:
-        futures=[pool.submit(work,f) for f in files]
+        futures={pool.submit(work,f):f.name for f in files}
         for i,future in enumerate(concurrent.futures.as_completed(futures),1):
-            name=future.result()
-            if i%20==0 or name.endswith((".exe",".zip",".txt")):print(a.host,f"{i}/{len(files)} verified",name,flush=True)
+            try:name=future.result()
+            except Exception as error:
+                for queued in futures:queued.cancel()
+                raise RuntimeError(f"Asset {futures[future]}: {error}") from None
+            if i%20==0 or name.endswith((".exe",".zip",".txt")):print(a.host,f"{i}/{len(files)}",("metadata checked" if a.metadata_only else "verified"),name,flush=True)
     if a.mode=="publish":
         data={"body":a.notes.read_text(encoding="utf-8"),"prerelease":False}
         if a.host=="github":data.update(draft=False,make_latest="true")
+        else:data.update(tag_name=release["tag_name"],name=release["name"])
         pub.request(f"/releases/{release['id']}",method="PATCH",data=data)
-    print("COMPLETE",a.host,a.mode,len(files),"assets",flush=True)
+    print("COMPLETE",a.host,a.mode,len(files),"assets",("(names/sizes only; remote byte verification incomplete)" if a.metadata_only else "(remote hashes verified)"),flush=True)
 
 if __name__=="__main__":
     try:main()
     except Exception as e:print(type(e).__name__+": "+str(e),file=sys.stderr);sys.exit(1)
-

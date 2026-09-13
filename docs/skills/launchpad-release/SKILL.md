@@ -29,10 +29,13 @@ Authorization to prepare does not itself authorize pushing or publishing. If the
 6. Once both uploads are complete, run `python tools/Publish-Release.py HOST publish --version VERSION --assets bin/releases/vVERSION --execute` for each host. This verifies every asset before marking stable. Use verify mode for read-only rechecks.
 7. Confirm public release state, tag commit, three end-user packages, both manifests and all referenced assets. Check application update discovery against the public release. Report commit and both release links, and any actual limitations.
 
+Observed platform constraint: Gitee rejected the 129 MB v0.97 installer with HTTP 400 and a 100 MB attachment limit. When this occurs, keep the single EXE intact on GitHub and disclose a direct GitHub download link in both README languages and the release notes. Use --external-installer on Gitee upload/verify/publish; the tool verifies that exact installer's GitHub digest and requires GitHub to be stable before publishing Gitee. ZIPs and incremental assets remain mirrored. Do not silently omit the installer or split it into multiple user downloads. GitHub drafts may require discovery through the release list rather than the tag endpoint.
+
+Gitee may return 403 for all downloads after bulk verification, including previously readable checksum files. Stop repeated bulk retries. If every expected attachment is already uploaded, local hashes and GitHub digests are verified, and Gitee names/sizes match, verify/publish supports --metadata-only to finish without repeated downloads. Explicitly report that this checks Gitee attachment completeness, not every remote file hash. Do not use it to bypass a known checksum mismatch or missing attachment. The updater can fall back to GitHub when Gitee downloads fail.
+
 GitHub official REST release assets: https://docs.github.com/en/rest/releases/assets
 Gitee upload API: POST /api/v5/repos/{owner}/{repo}/releases/{release_id}/attach_files, multipart field file; download uses the corresponding attachment ID route. Check current host limits rather than assuming them.
 
 ## Skill distribution
 
 The repository copy lives at docs/skills/launchpad-release. Copy the complete folder into the current agent's skill directory (normally ~/.codex/skills) when installing it for discovery; do not hard-code the original developer's username or workspace. Keep both copies in sync when updating this workflow. Validate with skill-creator's quick_validate.py when available.
-

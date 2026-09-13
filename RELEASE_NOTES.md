@@ -2,6 +2,8 @@
 
 ## 中文
 
+**安装包下载**：[单 EXE 一键安装包](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe)。Gitee 单附件上限为 100 MB，本版离线安装包约 129 MB，因此该入口由 GitHub 提供；两种 ZIP 和增量资源仍在两站提供。
+
 ### 新功能
 
 - 单 EXE 一键安装：自带运行环境、可选安装目录，识别旧版本后原位更新，保留应用、分类、主题和备份。
@@ -32,6 +34,8 @@
 本版统一应用、安装器和清单版本，避免历史标签与程序集版本不一致。旧发行版保持不变。`LaunchPad-update-*.json` 和 `lp-*.gz` 为应用内更新资源，无需手动下载。
 
 ## English
+
+**Installer download:** [single EXE offline setup](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe). Gitee limits each attachment to 100 MB; this offline installer is approximately 129 MB and is therefore hosted on GitHub. Both ZIP packages and incremental assets remain available on both hosts.
 
 ### New features
 

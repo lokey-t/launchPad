@@ -19,3 +19,4 @@ obj/
 /out1_lp.png
 
 website/
+__pycache__/

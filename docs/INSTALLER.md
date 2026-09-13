@@ -19,6 +19,8 @@
 
 输出为 `bin/releases/v版本/LaunchPad-v版本-win-x64-setup.exe` 及 SHA-256 校验文件。生成脚本只打包，不安装，不上传 GitHub/Gitee。正式发布时将同一 EXE 和校验文件上传到两站对应 release，建议按发行流程为 EXE 添加代码签名。
 
+v0.97 实际发行时 Gitee 返回单附件 100 MB 限制，而离线安装包约 129 MB。完整单 EXE 托管于 GitHub，Gitee 更新说明提供直达下载链接；ZIP 与增量资源仍双站托管。发布工具的 `--external-installer` 会校验 GitHub 安装包且要求其正式发布后才允许发布 Gitee 版本。
+
 原有 ZIP 和增量更新方式继续保留。使用脚本输出的应用发布目录运行 `tools/New-UpdateAssets.ps1` 生成 self-contained 增量资源；安装后的应用可继续使用软件内的增量更新。网站仍保留现有两种 ZIP 下载入口，本次没有改变用户选择的下载类型。
 
 ## 验证
