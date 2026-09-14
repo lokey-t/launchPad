@@ -1,67 +1,27 @@
-# LaunchPad v0.97
+# LaunchPad v0.97.1
 
 ## 中文
 
-**安装包下载**：[单 EXE 一键安装包](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe)。Gitee 单附件上限为 100 MB，本版离线安装包约 129 MB，因此该入口由 GitHub 提供；两种 ZIP 和增量资源仍在两站提供。
+- **更新增量更新方式**：将变化和新增的文件合并为一个 ZIP，每种部署类型只需一个增量包和一份清单，减少发行附件数量。保留双站下载、SHA-256 校验及失败回滚；版本不适用或文件校验失败时自动回退完整包。
+- **缩减安装包大小**：安装器改为 NSIS，单 EXE 离线安装包从约 129 MB 缩减到约 45 MB，体积减少约 65%。保留原有界面风格、中英文、目录选择和旧版更新，配置与备份不受影响。
 
-### 新功能
+### 下载
 
-- 单 EXE 一键安装：自带运行环境、可选安装目录，识别旧版本后原位更新，保留应用、分类、主题和备份。
-- 自动更新提示与关于页“检查更新”：支持忽略本版本、下次再说、GitHub/Gitee 自主下载和同版本镜像回退。
-- 按文件增量更新、SHA-256 校验、替换失败回滚；提供完整版和精简版的增量资源。
-- 首次运行引导，可在关于页重新进入。
-- 应用快捷方式默认解析为原文件，可在“通用”关闭。
-- 主页右键支持按添加时间、名称、打开时间排序。
+- `LaunchPad-v0.97.1-win-x64-setup.exe`：推荐，单 EXE 离线安装或更新。
+- `LaunchPad-v0.97.1-win-x64.zip`：包含运行环境的便携版。
+- `LaunchPad-v0.97.1-win-x64-framework-dependent.zip`：需要 .NET 8 Desktop Runtime x64 的精简便携版。
 
-### 界面与体验
-
-- 新应用图标，托盘右键菜单与整体风格统一。
-- 拖动预览跟随当前主题和图标样式。
-- 重复启动应用直接打开已有主界面。
-- 优化语言选择控件；保留中英文切换、主题预设导入导出及恢复出厂设置功能。
-
-### 下载与升级
-
-| 附件 | 说明 |
-| --- | --- |
-| `LaunchPad-v0.97-win-x64-setup.exe` | 推荐；单 EXE 离线安装或更新，可选目录。 |
-| `LaunchPad-v0.97-win-x64.zip` | 原有便携完整版，包含运行环境，解压运行。 |
-| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | 原有精简版，需要 .NET 8 Desktop Runtime x64。 |
-| `LaunchPad-v0.97-sha256.txt` | 发行附件 SHA-256 校验值。 |
-
-支持 Windows 10 / 11 x64。ZIP 解压后保留全部文件，手动覆盖前退出旧版本。无法识别未运行、未注册的便携版时，可在安装器中选择其原目录。数据位于 `%AppData%/LaunchPad`，不需重新导入。安装器负责安装和升级，目前不注册 Windows 卸载入口。
-
-本版统一应用、安装器和清单版本，避免历史标签与程序集版本不一致。旧发行版保持不变。`LaunchPad-update-*.json` 和 `lp-*.gz` 为应用内更新资源，无需手动下载。
+支持 Windows 10 / 11 x64。安装包和 ZIP 均在 GitHub、Gitee 提供。v0.97 通过原有完整包方式升级，本版及后续版本支持合并增量 ZIP。增量 ZIP 和清单由应用自动使用，无需手动下载。历史发行版保持不变。
 
 ## English
 
-**Installer download:** [single EXE offline setup](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe). Gitee limits each attachment to 100 MB; this offline installer is approximately 129 MB and is therefore hosted on GitHub. Both ZIP packages and incremental assets remain available on both hosts.
+- **Updated incremental delivery**: changed and added files are bundled into one ZIP, with one delta archive and one manifest per deployment flavor. This reduces release attachments while retaining mirror failover, SHA-256 checks and rollback. Unsupported baselines or failed verification fall back to a full package.
+- **Smaller installer**: NSIS reduces the single EXE offline installer from approximately 129 MB to 45 MB, about 65% smaller. The existing visual style, Chinese/English UI, folder selection and in-place upgrades are retained; settings and backups are preserved.
 
-### New features
+### Downloads
 
-- Single EXE offline setup with runtime included, a selectable folder, and in-place upgrades that preserve apps, categories, themes and backups.
-- Startup update notifications and Check for updates in About, with Ignore this version, Later, manual GitHub/Gitee downloads and fallback between mirrors of the same version.
-- Per-file incremental downloads, SHA-256 validation and rollback on replacement failure, with assets for both deployment types.
-- First-run onboarding, also accessible from About.
-- Application shortcuts resolve to their original targets by default; configurable in General.
-- Home context menu sorting by added time, name or last-opened time.
+- `LaunchPad-v0.97.1-win-x64-setup.exe`: recommended single EXE offline installation or upgrade.
+- `LaunchPad-v0.97.1-win-x64.zip`: portable package with runtime included.
+- `LaunchPad-v0.97.1-win-x64-framework-dependent.zip`: smaller portable package requiring .NET 8 Desktop Runtime x64.
 
-### Interface and experience
-
-- New application icon and a tray menu matching the app.
-- Drag previews follow the current theme and icon appearance.
-- Launching an already running instance opens its main window.
-- Refined language picker; Chinese/English switching, theme preset import/export and factory reset remain available.
-
-### Download and upgrade
-
-| Asset | Description |
-| --- | --- |
-| `LaunchPad-v0.97-win-x64-setup.exe` | Recommended: one EXE for offline installation or upgrades with folder selection. |
-| `LaunchPad-v0.97-win-x64.zip` | Existing portable full package with runtime included. Extract and run. |
-| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | Existing smaller package requiring .NET 8 Desktop Runtime x64. |
-| `LaunchPad-v0.97-sha256.txt` | SHA-256 checksums for release assets. |
-
-Windows 10 / 11 x64. Keep all extracted ZIP files together and exit the old tray instance before a manual overwrite. Select the original folder for an undetected, unregistered portable copy. Data remains in `%AppData%/LaunchPad`. Setup handles installation and upgrades; Windows uninstall registration is not included yet.
-
-Application, installer and manifest versions are aligned, avoiding the historical mismatch with release tags. Older releases remain unchanged. `LaunchPad-update-*.json` and `lp-*.gz` are used by the in-app updater and do not need manual downloading.
+Windows 10 / 11 x64. Setup and ZIP packages are available on both GitHub and Gitee. v0.97 migrates through its existing full-package update path; this and future versions support bundled deltas. Delta ZIPs and manifests are consumed automatically by the app. Historical releases are unchanged.

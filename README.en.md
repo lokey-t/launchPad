@@ -1,4 +1,4 @@
-# LaunchPad v0.97
+# LaunchPad v0.97.1
 
 [中文](README.md) · **English**
 
@@ -16,19 +16,19 @@ A lightweight Windows application launcher with keyboard shortcuts, categories, 
 
 ## Download and run
 
-Download from [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97) or [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97):
+Download from [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97.1) or [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97.1):
 
 | Package | Requirements |
 | --- | --- |
-| `LaunchPad-v0.97-win-x64-setup.exe` | Recommended. Offline single EXE setup with runtime included, folder selection and in-place upgrades preserving settings and backups. |
-| `LaunchPad-v0.97-win-x64.zip` | Portable full package. Includes the .NET runtime. Extract and run `LaunchPad.exe`. |
-| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | Smaller package requiring .NET 8 Desktop Runtime (x64). Keep all extracted files together. |
+| `LaunchPad-v0.97.1-win-x64-setup.exe` | Recommended. Offline single EXE setup with runtime included, folder selection and in-place upgrades preserving settings and backups. |
+| `LaunchPad-v0.97.1-win-x64.zip` | Portable full package. Includes the .NET runtime. Extract and run `LaunchPad.exe`. |
+| `LaunchPad-v0.97.1-win-x64-framework-dependent.zip` | Smaller package requiring .NET 8 Desktop Runtime (x64). Keep all extracted files together. |
 
 Supports Windows 10 / 11 x64. Setup detects existing installations; select the original folder for an unregistered portable copy that is not running. Exit the previous tray instance before upgrading with ZIP files. The default show/hide shortcut is **Ctrl + Space**, configurable in Settings. Closing the main window leaves the app in the tray; use the tray menu to exit completely.
 
 ## Features
 
-The single EXE installer is approximately 129 MB, exceeding Gitee's 100 MB attachment limit. Use the [direct GitHub installer download](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe). Both ZIP packages are available on either host.
+The NSIS offline installer is approximately 45 MB, about 65% smaller than v0.97, and is available on both GitHub and Gitee.
 
 - **Apps and folders:** add files or shortcuts by dropping them into the launcher. Search, choose single- or double-click launching, and customize display names and icons. Duplicate imports show a Toast with the existing entry and category.
 - **Continuous drag and drop:** animated reordering in the main grid and folders. Drop directly onto a folder to move inside, or hover to open it and choose a position. Dragging out closes the folder and continues the same drag. Press Esc to cancel an internal drag.
@@ -40,7 +40,12 @@ The single EXE installer is approximately 129 MB, exceeding Gitee's 100 MB attac
 - **Layout refinements:** overlay scrollbars no longer reduce content width; Small / Medium / Large icon modes use tighter spacing so each row holds more icons; a soft shadow appears above the bottom bar when content is scrollable.
 - **Other:** launch at startup, tray menu, opening the existing main window when launched again, and click-outside dismissal for the New Category dialog. Tab navigation and Alt access-key hints are suppressed within the app without changing Windows settings.
 
-## New in v0.97
+## Updated in v0.97.1
+
+- Bundled incremental updates: changed and added files share one ZIP, reducing release attachments, with full-package fallback.
+- Smaller NSIS installer retaining offline installation, folder selection and in-place upgrades.
+
+## Existing features
 
 - Startup update notifications and manual checks in About: Ignore, Later, downloads from either host, per-file incremental updates and rollback on failure.
 - First-run onboarding, accessible again from About; shortcut target resolution enabled by default and configurable in General.

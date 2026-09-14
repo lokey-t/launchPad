@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net8.0-windows</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
+    <AssemblyName>LaunchPad.Setup.Worker</AssemblyName><UseAppHost>true</UseAppHost><EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup><Compile Include="Program.cs"/><Compile Include="../InstallEngine.cs"/><Compile Include="../InstallationDiscovery.cs"/><Compile Include="../RunningApplication.cs"/></ItemGroup>
+</Project>

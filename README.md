@@ -1,4 +1,4 @@
-# LaunchPad v0.97
+# LaunchPad v0.97.1
 
 **中文** · [English](README.en.md)
 
@@ -16,19 +16,19 @@
 
 ## 下载与运行
 
-从 [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97) 或 [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97) 下载：
+从 [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97.1) 或 [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97.1) 下载：
 
 | 发行包 | 说明 |
 | --- | --- |
-| `LaunchPad-v0.97-win-x64-setup.exe` | 推荐。单 EXE 离线安装，自带运行环境，可选目录；识别旧版并更新，保留配置和备份。 |
-| `LaunchPad-v0.97-win-x64.zip` | 便携完整版。包含 .NET 运行环境，解压后直接运行 `LaunchPad.exe`。 |
-| `LaunchPad-v0.97-win-x64-framework-dependent.zip` | 精简包，需要 .NET 8 Desktop Runtime（x64）。解压后保留整个文件夹运行。 |
+| `LaunchPad-v0.97.1-win-x64-setup.exe` | 推荐。单 EXE 离线安装，自带运行环境，可选目录；识别旧版并更新，保留配置和备份。 |
+| `LaunchPad-v0.97.1-win-x64.zip` | 便携完整版。包含 .NET 运行环境，解压后直接运行 `LaunchPad.exe`。 |
+| `LaunchPad-v0.97.1-win-x64-framework-dependent.zip` | 精简包，需要 .NET 8 Desktop Runtime（x64）。解压后保留整个文件夹运行。 |
 
 支持 Windows 10 / 11 x64。安装包可自动识别旧版本并更新，未注册且未运行的便携版需选择原目录；使用 ZIP 覆盖升级前，从托盘退出旧版本。默认 **Ctrl + Space** 呼出或隐藏，可在设置中修改。关闭主窗口后应用驻留托盘，通过托盘菜单彻底退出。
 
 ## 功能
 
-单 EXE 安装包约 129 MB，超过 Gitee 的 100 MB 附件上限，请使用 [GitHub 安装包直达链接](https://github.com/lokey-t/launchPad/releases/download/v0.97/LaunchPad-v0.97-win-x64-setup.exe)。两种 ZIP 可从任一站点下载。
+NSIS 单 EXE 离线安装包约 45 MB，相比 v0.97 缩小约 65%，可从 GitHub 或 Gitee 下载。
 
 - **应用与文件夹**：拖入文件或快捷方式即可添加；支持搜索、单击或双击启动、右键修改显示名称和图标。重复导入通过 Toast 显示已有条目及分类。
 - **连续拖拽**：主网格和文件夹内有排序让位动画。直接放到文件夹即可移入；悬停后展开并选择位置。从文件夹拖出时自动收起，可继续移动。按 Esc 取消内部拖动。
@@ -40,7 +40,12 @@
 - **布局优化**：悬浮式滚动条不挤占内容宽度；小 / 中 / 大图标模式收紧间距，每行容纳更多图标；内容可滚动时底部信息条上方显示柔和阴影。
 - **其他**：开机自启、托盘菜单、再次运行直接打开已有主界面、新建分类弹窗点击空白关闭。应用内禁用 Tab 焦点切换与 Alt 按键提示，不改变 Windows 设置。
 
-## v0.97 新增
+## v0.97.1 更新
+
+- 更新增量更新方式：变化与新增文件合并为一个 ZIP，减少发行附件；不适用时自动使用完整包。
+- 缩减安装包大小：改为 NSIS，保留离线安装、目录选择与旧版更新。
+
+## 已有功能
 
 - 自动更新提示与关于页手动检查：忽略本版本、下次再说、双站自主下载、按文件增量更新及失败回滚。
 - 首次运行引导，可从关于页重新进入；应用快捷方式默认解析原文件，可在通用关闭。

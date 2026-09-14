@@ -20,9 +20,18 @@ public sealed class UpdateFile
     public long Size { get; set; }
     public string Asset { get; set; }
 }
+public sealed class UpdateBundle
+{
+    public string Asset { get; set; }
+    public string Sha256 { get; set; }
+    public long Size { get; set; }
+    public List<string> Paths { get; set; } = new();
+}
 public sealed class UpdateManifest
 {
     public int Format { get; set; } = 1;
+    public string BaseVersion { get; set; }
+    public UpdateBundle Bundle { get; set; }
     public string Version { get; set; }
     public string Runtime { get; set; }
     public string Flavor { get; set; }
@@ -42,6 +51,7 @@ public sealed class UpdateService
     public static Version CurrentVersion => Normalize(typeof(App).Assembly.GetName().Version);
     public static string Runtime => "win-" + RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
     public static string Flavor => File.Exists(System.IO.Path.Combine(AppContext.BaseDirectory, "coreclr.dll")) || string.IsNullOrEmpty(typeof(object).Assembly.Location) ? "self-contained" : "framework-dependent";
+    public static string BundleManifestName => $"LaunchPad-update-bundle-{Runtime}-{Flavor}.json";
     public static string ManifestName => $"LaunchPad-update-{Runtime}-{Flavor}.json";
 
     public UpdateService(HttpClient http = null)
@@ -124,15 +134,27 @@ public sealed class UpdateService
     public static string Hash(string path) { using var stream = File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(stream)); }
     public static void ValidateManifest(UpdateManifest manifest, UpdateOffer offer, string root, bool fullPackage = false)
     {
-        if (manifest == null || manifest.Format != 1 || ParseVersion(manifest.Version) != offer.Version || manifest.Runtime != Runtime || manifest.Flavor != Flavor || manifest.Files == null || manifest.Files.Count is < 1 or > 4096) throw new IOException("UpdateInvalidManifest");
+        if (manifest == null || manifest.Format is not (1 or 2) || ParseVersion(manifest.Version) != offer.Version || manifest.Runtime != Runtime || manifest.Flavor != Flavor || manifest.Files == null || manifest.Files.Count is < 1 or > 4096) throw new IOException("UpdateInvalidManifest");
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase); long total = 0;
         foreach (var f in manifest.Files)
         {
-            if (f == null || !paths.Add(SafePath(root,f.Path)) || !Regex.IsMatch(f.Sha256 ?? "",@"^[a-fA-F0-9]{64}$") || f.Size < 0 || f.Size > MaxBytes || (total += f.Size) > MaxBytes || f.Asset != "lp-" + f.Sha256.ToLowerInvariant() + ".gz") throw new IOException("UpdateInvalidManifest");
+            if (f == null || !paths.Add(SafePath(root,f.Path)) || !Regex.IsMatch(f.Sha256 ?? "",@"^[a-fA-F0-9]{64}$") || f.Size < 0 || f.Size > MaxBytes || (total += f.Size) > MaxBytes || (manifest.Format == 1 && f.Asset != "lp-" + f.Sha256.ToLowerInvariant() + ".gz")) throw new IOException("UpdateInvalidManifest");
         }
         if (!manifest.Files.Any(f => f.Path == "LaunchPad.exe") || (!fullPackage && !manifest.Files.Any(f => f.Path == "LaunchPad.dll"))) throw new IOException("UpdateInvalidManifest");
     }
-    public static bool SupportsIncremental(UpdateOffer offer) => offer.Mirrors.Any(r => r.Assets.Any(a => a.Name == ManifestName));
+    private static void ValidateBundle(UpdateManifest manifest, UpdateOffer offer, string root)
+    {
+        ValidateManifest(manifest, offer, root);
+        var b = manifest.Bundle;
+        var baseline = ParseVersion(manifest.BaseVersion);
+        if (manifest.Format != 2 || baseline == null || baseline >= offer.Version || b == null ||
+            !Regex.IsMatch(b.Asset ?? "", @"^LaunchPad-delta-[a-zA-Z0-9_.-]+\.zip$") ||
+            !Regex.IsMatch(b.Sha256 ?? "", @"^[a-fA-F0-9]{64}$") || b.Size <= 0 || b.Size > MaxBytes ||
+            b.Paths == null || b.Paths.Count is < 1 or > 4096 ||
+            b.Paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != b.Paths.Count ||
+            b.Paths.Any(p => !manifest.Files.Any(f => f.Path == p))) throw new IOException("UpdateInvalidManifest");
+    }
+    public static bool SupportsIncremental(UpdateOffer offer) => offer.Mirrors.Any(r => r.Assets.Any(a => a.Name == ManifestName || a.Name == BundleManifestName));
 
     public async Task<PreparedUpdate> PrepareAsync(UpdateOffer offer, string installRoot, bool fullPackage, IProgress<UpdateProgress> progress, CancellationToken token)
     {
@@ -142,7 +164,13 @@ public sealed class UpdateService
         {
             SafePath(stage,"LaunchPad.dll");
             UpdateManifest manifest;
-            if (fullPackage) manifest = await PrepareFull(offer,stage,progress,token);
+            if (!fullPackage && offer.Mirrors.Any(m => m.Assets.Any(a => a.Name == BundleManifestName)))
+            {
+                manifest = await PrepareBundle(offer, installRoot, stage, progress, token);
+                manifest ??= await PrepareFull(offer, stage, progress, token);
+                fullPackage = true; // Both paths already staged verified files; no per-file requests.
+            }
+            else if (fullPackage || !SupportsIncremental(offer)) { fullPackage = true; manifest = await PrepareFull(offer,stage,progress,token); }
             else
             {
                 manifest = null;
@@ -205,6 +233,65 @@ public sealed class UpdateService
         }
         catch { DeleteStage(stage); throw; }
     }
+    private async Task<UpdateManifest> PrepareBundle(UpdateOffer offer, string root, string stage, IProgress<UpdateProgress> progress, CancellationToken token)
+    {
+        foreach (var mirror in offer.Mirrors)
+        {
+            var index = mirror.Assets.FirstOrDefault(a => a.Name == BundleManifestName);
+            if (index == null) continue;
+            try
+            {
+                var manifest = JsonSerializer.Deserialize<UpdateManifest>(System.Text.Encoding.UTF8.GetString(await DownloadBytes(index.Url, 4*1024*1024, token)).TrimStart('\uFEFF'), Json);
+                ValidateBundle(manifest, offer, root);
+                var localDll = SafePath(root, "LaunchPad.dll");
+                if (!File.Exists(localDll) || Normalize(AssemblyName.GetAssemblyName(localDll).Version) != ParseVersion(manifest.BaseVersion)) continue;
+                var bundle = manifest.Bundle;
+                var included = bundle.Paths.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                // Every omitted target file must already match. A repaired/older installation uses the full ZIP.
+                if (manifest.Files.Where(f => !included.Contains(f.Path)).Any(f =>
+                    !File.Exists(SafePath(root,f.Path)) || new FileInfo(SafePath(root,f.Path)).Length != f.Size ||
+                    !Hash(SafePath(root,f.Path)).Equals(f.Sha256,StringComparison.OrdinalIgnoreCase))) continue;
+                bool downloaded = false;
+                foreach (var source in offer.Mirrors)
+                {
+                    var asset = source.Assets.FirstOrDefault(a => a.Name == bundle.Asset);
+                    if (asset == null) continue;
+                    try
+                    {
+                        progress?.Report(new(source.Source,0,bundle.Paths.Count));
+                        string archive = System.IO.Path.Combine(stage,"delta.zip");
+                        using (var response = await _http.GetAsync(asset.Url,HttpCompletionOption.ResponseHeadersRead,token))
+                        {
+                            response.EnsureSuccessStatusCode();
+                            await using var input = await response.Content.ReadAsStreamAsync(token);
+                            await using var output = File.Create(archive);
+                            await CopyBounded(input,output,bundle.Size,token);
+                        }
+                        if (new FileInfo(archive).Length != bundle.Size || !Hash(archive).Equals(bundle.Sha256,StringComparison.OrdinalIgnoreCase)) throw new IOException("UpdateHashFailed");
+                        using var zip = ZipFile.OpenRead(archive);
+                        if (zip.Entries.Count != included.Count) throw new IOException("UpdateInvalidManifest");
+                        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var entry in zip.Entries)
+                        {
+                            if (!included.Contains(entry.FullName) || !seen.Add(entry.FullName)) throw new IOException("UpdateInvalidPath");
+                            var file = manifest.Files.Single(f => f.Path == entry.FullName);
+                            if (entry.Length != file.Size) throw new IOException("UpdateHashFailed");
+                            string destination = SafePath(stage,file.Path);
+                            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(destination));
+                            await using (var input = entry.Open()) await using (var output = File.Create(destination)) await CopyBounded(input,output,file.Size,token);
+                            if (!Hash(destination).Equals(file.Sha256,StringComparison.OrdinalIgnoreCase)) throw new IOException("UpdateHashFailed");
+                            progress?.Report(new(source.Source,seen.Count,included.Count));
+                        }
+                        downloaded = true; break;
+                    }
+                    catch (Exception ex) when (ex is IOException or HttpRequestException or OperationCanceledException or InvalidOperationException) { token.ThrowIfCancellationRequested(); }
+                }
+                if (downloaded) return manifest;
+            }
+            catch (Exception ex) when (ex is IOException or HttpRequestException or JsonException or OperationCanceledException or BadImageFormatException or InvalidOperationException) { token.ThrowIfCancellationRequested(); }
+        }
+        return null; // Unsupported base, damaged files or unavailable delta: verified full-package fallback.
+    }
     private async Task<UpdateManifest> PrepareFull(UpdateOffer offer,string stage,IProgress<UpdateProgress> progress,CancellationToken token)
     {
         foreach (var mirror in offer.Mirrors)
@@ -217,7 +304,7 @@ public sealed class UpdateService
                 string hash = asset.Digest?.StartsWith("sha256:") == true ? asset.Digest[7..] : null;
                 if (hash == null)
                 {
-                    var sums = mirror.Assets.FirstOrDefault(a => a.Name.EndsWith("sha256.txt",StringComparison.OrdinalIgnoreCase) || a.Name == "SHA256SUMS.txt");
+                    var sums = mirror.Assets.FirstOrDefault(a => a.Name.Equals($"LaunchPad-v{DisplayVersion(offer.Version)}-sha256.txt",StringComparison.OrdinalIgnoreCase) || a.Name == "SHA256SUMS.txt");
                     if (sums != null)
                     {
                         string text = System.Text.Encoding.UTF8.GetString(await DownloadBytes(sums.Url,65536,token));

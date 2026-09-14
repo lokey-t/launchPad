@@ -54,7 +54,7 @@ public static class InstallEngine
             if(f==null||!paths.Add(SafeFile(target,f.Path))||f.Size<0||f.Size>MaxBytes||(total+=f.Size)>MaxBytes||!Regex.IsMatch(f.Sha256??"",@"^[a-fA-F0-9]{64}$"))throw new IOException("InvalidPayload");
         foreach(var required in new[]{"LaunchPad.exe","LaunchPad.dll","coreclr.dll"})if(!manifest.Files.Any(f=>f.Path==required))throw new IOException("InvalidPayload");
     }
-    public static async Task InstallAsync(string directory,PayloadManifest manifest,Func<Stream> payload,IProgress<InstallProgress> progress,CancellationToken token,Func<string,CancellationToken,Task> closeApplication=null)
+    public static async Task InstallAsync(string directory,PayloadManifest manifest,Func<Stream> payload,IProgress<InstallProgress> progress,CancellationToken token,Func<string,CancellationToken,Task> closeApplication=null,string sourceDirectory=null)
     {
         string target=ValidateDirectory(directory);ValidateManifest(manifest,target);
         var version=Version.Parse(manifest.Version);
@@ -65,9 +65,25 @@ public static class InstallEngine
         try
         {
             progress?.Report(new("Verifying",3));string archivePath=Path.Combine(stage,"payload.zip");
+            string filesRoot=Path.Combine(stage,"files");
+            if(sourceDirectory!=null)
+            {
+                int done=0;
+                foreach(var file in manifest.Files)
+                {
+                    token.ThrowIfCancellationRequested();
+                    string source=SafeFile(sourceDirectory,file.Path),path=SafeFile(filesRoot,file.Path);
+                    if(new FileInfo(source).Length!=file.Size)throw new IOException("InvalidPayload");
+                    Directory.CreateDirectory(Path.GetDirectoryName(path));
+                    await using(var input=File.OpenRead(source))await using(var output=File.Create(path))await Copy(input,output,file.Size,token);
+                    if(!Hash(path).Equals(file.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("InvalidPayload");
+                    progress?.Report(new("Verifying",5+65.0*++done/manifest.Files.Count));
+                }
+            }
+            else
+            {
             using(var input=payload())await using(var output=File.Create(archivePath))await Copy(input,output,MaxBytes,token);
             if(!Hash(archivePath).Equals(manifest.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("InvalidPayload");
-            string filesRoot=Path.Combine(stage,"files");
             using(var zip=ZipFile.OpenRead(archivePath))
             {
                 if(zip.Entries.Count!=manifest.Files.Count)throw new IOException("InvalidPayload");
@@ -80,6 +96,7 @@ public static class InstallEngine
                     if(new FileInfo(path).Length!=file.Size||!Hash(path).Equals(file.Sha256,StringComparison.OrdinalIgnoreCase))throw new IOException("InvalidPayload");
                     progress?.Report(new("Verifying",5+65.0*++done/manifest.Files.Count));
                 }
+            }
             }
             if(AssemblyName.GetAssemblyName(SafeFile(filesRoot,"LaunchPad.dll")).Version!=version)throw new IOException("VersionMismatch");
             token.ThrowIfCancellationRequested();progress?.Report(new("Closing",72));

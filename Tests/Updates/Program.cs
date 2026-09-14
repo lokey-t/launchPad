@@ -87,8 +87,65 @@ class Program
         handler.Respond=_=>Data(archive);
         prepared=await service.PrepareAsync(fullOffer,install,true,null,CancellationToken.None);
         Assert(prepared.Files.Count==1 && UpdateService.Hash(Path.Combine(prepared.Directory,"LaunchPad.dll")).Equals(Hash(dll),StringComparison.OrdinalIgnoreCase),"legacy full ZIP verified and staged, unchanged files skipped"); UpdateService.DeleteStage(prepared.Directory);
+        var checksumOffer=new UpdateOffer(offer.Version,new(){new("Gitee","vtest",offer.Version,"",new(){
+            new("setup.exe.sha256.txt","https://gitee.com/lokey-t/launchPad/releases/download/vtest/setup.exe.sha256.txt",null),
+            new($"LaunchPad-v{UpdateService.DisplayVersion(offer.Version)}-sha256.txt","https://gitee.com/lokey-t/launchPad/releases/download/vtest/checksums",null),
+            new(name,"https://gitee.com/lokey-t/launchPad/releases/download/vtest/"+name,null)},0)});
+        handler.Respond=url=>url.EndsWith("checksums") ? Data(Encoding.UTF8.GetBytes(Hash(archive)+"  "+name)) : url.EndsWith(".zip") ? Data(archive) : Fail();
+        prepared=await service.PrepareAsync(checksumOffer,install,false,null,CancellationToken.None);
+        Assert(prepared.Files.Count==1,"no manifest uses full fallback and release-wide checksum instead of installer checksum");
+        UpdateService.DeleteStage(prepared.Directory);
+        await Bundles(service,handler,install,files,exe,dll,fullOffer,archive);
         await Installer(false); await Installer(true);
         Console.WriteLine("ALL UPDATE CHECKS PASSED. Isolated files: "+Root);
+    }
+    static async Task Bundles(UpdateService service, Handler handler, string install, List<UpdateFile> files, byte[] exe, byte[] dll, UpdateOffer fullOffer, byte[] fullZip)
+    {
+        byte[] baseline = File.ReadAllBytes(typeof(UpdateBaselineFixture).Assembly.Location);
+        File.WriteAllBytes(Path.Combine(install,"LaunchPad.dll"),baseline);
+        byte[] MakeZip(string path, byte[] content) { using var memory = new MemoryStream(); using (var zip = new ZipArchive(memory,ZipArchiveMode.Create,true)) { using var output = zip.CreateEntry(path).Open(); output.Write(content); } return memory.ToArray(); }
+        byte[] delta = MakeZip("LaunchPad.dll",dll);
+        var manifest = new UpdateManifest { Format=2,Version=fullOffer.Version.ToString(),BaseVersion="0.1.0.0",Runtime=UpdateService.Runtime,Flavor=UpdateService.Flavor,Files=files,
+            Bundle=new() { Asset="LaunchPad-delta-test.zip",Size=delta.Length,Sha256=Hash(delta),Paths=new(){"LaunchPad.dll"} } };
+        var mirrors = new List<UpdateRelease>();
+        foreach (string source in new[]{"GitHub","Gitee"})
+        {
+            string prefix=$"https://{source.ToLowerInvariant()}.com/lokey-t/launchPad/releases/download/vtest/";
+            mirrors.Add(new(source,"vtest",fullOffer.Version,"",new() { new(UpdateService.BundleManifestName,prefix+UpdateService.BundleManifestName,null),new(manifest.Bundle.Asset,prefix+manifest.Bundle.Asset,null),fullOffer.Mirrors[0].Assets[0] },0));
+        }
+        var offer = new UpdateOffer(fullOffer.Version,mirrors);
+        handler.Respond=url => url.EndsWith(".json") ? Json(manifest) : url.EndsWith(manifest.Bundle.Asset) ? (url.Contains("github") ? Data(new byte[]{1}) : Data(delta)) : Data(fullZip);
+        handler.Requests.Clear();
+        var prepared=await service.PrepareAsync(offer,install,false,null,CancellationToken.None);
+        Assert(prepared.Files.Count==1 && UpdateService.Hash(Path.Combine(prepared.Directory,"LaunchPad.dll")).Equals(Hash(dll),StringComparison.OrdinalIgnoreCase),"bundle stages changed file only");
+        Assert(handler.Requests.Any(u=>u.Contains("gitee") && u.EndsWith("delta-test.zip")) && !handler.Requests.Any(u=>u.EndsWith(fullOffer.Mirrors[0].Assets[0].Name)),"corrupt bundle fails over to second mirror without full download");
+        Assert(UpdateService.Hash(Path.Combine(install,"LaunchPad.dll")).Equals(Hash(baseline),StringComparison.OrdinalIgnoreCase),"bundle leaves installation untouched before handoff");
+        UpdateService.DeleteStage(prepared.Directory);
+        File.WriteAllText(Path.Combine(install,"LaunchPad.exe"),"damaged omitted file");
+        handler.Requests.Clear();
+        prepared=await service.PrepareAsync(offer,install,false,null,CancellationToken.None);
+        Assert(prepared.Files.Count==2 && !handler.Requests.Any(u=>u.EndsWith("delta-test.zip")),"mismatched omitted file uses full ZIP before downloading delta");
+        UpdateService.DeleteStage(prepared.Directory);
+        File.WriteAllBytes(Path.Combine(install,"LaunchPad.exe"),exe);
+        manifest.BaseVersion="0.2.0.0";
+        handler.Requests.Clear();
+        prepared=await service.PrepareAsync(offer,install,false,null,CancellationToken.None);
+        Assert(handler.Requests.Any(u=>u.EndsWith(fullOffer.Mirrors[0].Assets[0].Name)) && !handler.Requests.Any(u=>u.EndsWith("delta-test.zip")),"unsupported baseline uses full ZIP");
+        UpdateService.DeleteStage(prepared.Directory);
+        manifest.BaseVersion="0.1.0.0";
+        delta=MakeZip("../outside.dll",dll); manifest.Bundle.Size=delta.Length; manifest.Bundle.Sha256=Hash(delta);
+        handler.Requests.Clear();
+        prepared=await service.PrepareAsync(offer,install,false,null,CancellationToken.None);
+        Assert(handler.Requests.Any(u=>u.EndsWith(fullOffer.Mirrors[0].Assets[0].Name)) && !File.Exists(Path.Combine(Path.GetDirectoryName(prepared.Directory),"outside.dll")),"unsafe ZIP entry rejected with full fallback");
+        UpdateService.DeleteStage(prepared.Directory);
+        delta=MakeZip("LaunchPad.dll",Encoding.UTF8.GetBytes("wrong file")); manifest.Bundle.Size=delta.Length; manifest.Bundle.Sha256=Hash(delta);
+        handler.Requests.Clear();
+        prepared=await service.PrepareAsync(offer,install,false,null,CancellationToken.None);
+        Assert(handler.Requests.Any(u=>u.EndsWith(fullOffer.Mirrors[0].Assets[0].Name)),"valid archive hash cannot bypass per-file verification");
+        UpdateService.DeleteStage(prepared.Directory);
+        using var cancelled=new CancellationTokenSource(); cancelled.Cancel();
+        bool rejected=false; try { await service.PrepareAsync(offer,install,false,null,cancelled.Token); } catch(OperationCanceledException) { rejected=true; }
+        Assert(rejected,"bundle cancellation does not fall back");
     }
     static async Task Network()
     {

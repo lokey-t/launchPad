@@ -77,6 +77,13 @@ static class Program
             Assert(File.ReadAllText(Path.Combine(target,"coreclr.dll"))=="fixture runtime"&&!File.Exists(Path.Combine(target,"new.dll")),"rollback restores overwritten files and removes newly added files");
         }
         Assert(!Directory.GetDirectories(target,".launchpad-install-*").Any(),"staging cleaned after success and rollback");
+        string raw=Path.Combine(root,"raw");Directory.CreateDirectory(raw);
+        foreach(var pair in data)File.WriteAllBytes(Path.Combine(raw,pair.Key),pair.Value);
+        await InstallEngine.InstallAsync(target,manifest,null,null,CancellationToken.None,(_,_)=>Task.CompletedTask,raw);
+        Assert(Hash(File.ReadAllBytes(Path.Combine(target,"coreclr.dll")))==Hash(data["coreclr.dll"]),"raw NSIS payload installation");
+        File.WriteAllText(Path.Combine(raw,"coreclr.dll"),"corrupt");bool closed=false;rejected=false;
+        try{await InstallEngine.InstallAsync(target,manifest,null,null,CancellationToken.None,(_,_)=>{closed=true;return Task.CompletedTask;},raw);}catch(IOException){rejected=true;}
+        Assert(rejected&&!closed,"corrupted NSIS payload rejected before closing old application");
         Console.WriteLine("SETUP TESTS PASSED: "+root);
     }
 }

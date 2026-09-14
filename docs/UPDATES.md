@@ -8,17 +8,20 @@
 
 版本必须同时匹配项目 `Version / AssemblyVersion / FileVersion`、release tag 和包内程序集。先更新项目版本再发布。v0.97 已统一上述版本。
 
-1. 按目标架构发布到全新目录，例如：
+1. 保留上一正式版对应架构和部署类型的完整发布目录（也可将校验过的完整 ZIP 解压到独立目录）。发布新版本到全新目录，指定基线：
 
    ```powershell
-   dotnet publish LaunchPad.csproj -c Release -r win-x64 --self-contained false -o bin/publish-update
-   powershell -NoProfile -File tools/New-UpdateAssets.ps1 -PublishDirectory bin/publish-update -OutputDirectory bin/update-assets -Runtime win-x64
+   dotnet publish LaunchPad.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -o bin/publish-update
+   powershell -NoProfile -File tools/New-UpdateAssets.ps1 -PublishDirectory bin/publish-update -BaseDirectory bin/previous-framework-dependent -OutputDirectory bin/update-assets -Runtime win-x64
    ```
 
-2. 将输出目录中的 **全部** `.gz` 和 `LaunchPad-update-win-x64-framework-dependent.json` 附件上传到 GitHub、Gitee 对应版本 release。两边附件必须相同。独立运行版使用 `--self-contained true`，生成 `self-contained` 清单；支持 x64 / x86 / arm64，应分别发布。不要启用 single-file 发布，本协议需要独立的 LaunchPad.dll 和可识别的运行时文件。
-3. 保留完整 ZIP 下载供初次安装和自主下载。命名：`LaunchPad-v版本-win-x64.zip`（独立版）或 `LaunchPad-v版本-win-x64-framework-dependent.zip`。提供 `LaunchPad-v版本-sha256.txt` 或 `SHA256SUMS.txt`，每行 `SHA256  文件名`。GitHub 的 release asset `digest` 也可用于完整包校验。
+2. 每种部署类型只生成一个 `LaunchPad-delta-旧版本-to-新版本-架构-部署类型.zip` 和一份 `LaunchPad-update-bundle-架构-部署类型.json`。将两者上传到两个来源的同一 release。ZIP 仅包含 SHA-256 不同及新增的完整文件，不包含未变化的运行库。这是文件粒度增量，不是二进制差分。基线版本必须更旧，部署类型和架构必须与目标一致，不支持单文件基线。
+3. 保留完整 ZIP：`LaunchPad-v版本-win-x64.zip` 或 `LaunchPad-v版本-win-x64-framework-dependent.zip`，以及 `LaunchPad-v版本-sha256.txt` / `SHA256SUMS.txt`。完整包仍是首次下载和自动回退路径。GitHub 的附件 digest 也可用于验证。
+4. 统一构建入口：`tools/Build-Release.ps1 -Version VERSION -Dotnet PATH -BaseSelfContainedDirectory OLD_SELF -BaseFrameworkDependentDirectory OLD_FDD`。每个基线参数可省略，对应部署类型只发行完整包，不生成增量附件。需要 NSIS 编译器（可传 `-MakeNsis PATH`）。不要把基线设置成用户正在使用的安装目录，应使用干净的旧版本发布目录。
 
-增量按文件粒度：本地 SHA-256 相同的文件不下载；变动文件下载各自 gzip 数据并校验解压后大小和 SHA-256。不是二进制块差分。清单 Format=1，包含版本、架构、部署类型、路径、大小、摘要及附件名，不执行清单中的命令。旧 release 没有清单时，按钮明确显示“完整包更新”，按对应架构与部署类型下载、校验完整包，再仅替换变动文件。缺少可信摘要则停止自动安装，提供自主下载。
+新清单 `Format=2` 包含目标全部文件的路径、大小和 SHA-256，以及 `BaseVersion` 和 `Bundle`（附件名、压缩大小、SHA-256、包含的路径列表）。客户端核对本地程序集的基线版本，逐一校验未打包文件，再下载一个 ZIP。压缩包和每个文件均验证大小、摘要和路径；多余/重复/越界条目被拒绝。镜像失败会切换来源；无适用基线、未打包文件损坏、清单或增量包不可用时，自动回退到经过校验的完整包。取消不会触发继续下载。
+
+迁移兼容：不要生成旧名称的 Format=1 清单，也不要再发布 `.gz` 附件。v0.97 客户端看不到旧名称清单，会通过原有完整 ZIP 更新到支持新协议的版本；后续使用合并增量 ZIP。新客户端仍可读取历史 Format=1 release。完整包下载后也只替换本地有变化的文件。旧程序文件仍保留，不支持清单删除操作；需要强制移除文件的发行版必须另行扩展事务与回滚协议。
 
 更新结果写入 `%AppData%/LaunchPad/update-result.json`。失败的回滚副本保留在 `%TEMP%/LaunchPadUpdate/<UUID>/rollback`。成功启动后清理该次暂存。取消/下载失败清理尚未交接的暂存。未知旧程序文件不会删除；若未来发行版必须删除特定文件，应先扩展协议，不能假设旧文件会被移除。当前协议不执行安装器/MSIX；安装器安装出的应用仍可按 self-contained 清单增量更新；旧单文件 ZIP 可走完整更新并校验 EXE 版本。
 
@@ -28,5 +31,10 @@
 
 LaunchPad checks public stable releases from both hosts after startup. Ignore persists for that version; Later lasts until the next launch. Manual checks bypass ignored versions. The newest version wins; response latency determines mirror preference, with per-file failover and SHA-256 validation.
 
-Publish matching architecture/deployment builds, then run `tools/New-UpdateAssets.ps1` and attach all generated files to the same version on both hosts. Incremental updates transfer only changed files, individually gzip-compressed. Existing releases without a manifest explicitly offer a full-package update instead. Full ZIPs require a release digest or checksum list. Downloads are staged before shutdown; failed replacement rolls back, leaving AppData configuration and backups untouched. No elevation is requested. Retired files are retained. The updater does not execute setup/MSIX files; applications installed by our setup use the self-contained incremental manifest; legacy single-file ZIPs can use full-package updates with executable version validation.
+Publish a matching new build and provide a clean older build to `tools/New-UpdateAssets.ps1 -BaseDirectory OLD`. Format 2 produces one changed-file ZIP and one bundle manifest per deployment flavor. The manifest lists all target files, the base version and the bundle's hash, size and included paths. Omitted files must match locally. The updater verifies the archive and every extracted file, tries both mirrors, and falls back to a verified full ZIP for unsupported bases or unavailable/invalid deltas. Cancellation stops all downloads. This is whole-file replacement, not binary patching; retired files are retained and user data is untouched.
+
+`Build-Release.ps1` accepts `-BaseSelfContainedDirectory` and `-BaseFrameworkDependentDirectory`. Without a baseline, that flavor is full-package-only. Keep full ZIPs and their checksums for fallback. Do not publish the old Format 1 manifest names or per-file gzip assets: v0.97 will use its existing full-package path to migrate, while the new client can still consume historical Format 1 releases. Downloads are staged before shutdown and failed replacement rolls back. NSIS installation is independent of this update format.
+
 Run regression tests with `dotnet run --project Tests/Updates/UpdateTests.csproj -c Release`; add `-- --ui` for isolated WPF appearance checks or `-- --network` for a read-only live release/download check. None installs into the user's running application.
+
+Test bundle generation with `powershell -NoProfile -File Tests/Updates/BundlePackagingTests.ps1` after building/running UpdateTests in Debug. Fixtures stay under obj and temporary test directories.

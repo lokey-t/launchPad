@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Version,[string]$Dotnet='dotnet')
+param([Parameter(Mandatory=$true)][string]$Version,[string]$Dotnet='dotnet',[string]$MakeNsis,[string]$BaseSelfContainedDirectory,[string]$BaseFrameworkDependentDirectory)
 $ErrorActionPreference='Stop'
 $projectRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if($Version -notmatch '^\d+\.\d+(\.\d+){0,2}$'){throw 'Use a numeric version, for example 0.97.'}
@@ -9,18 +9,18 @@ if(Test-Path -LiteralPath $output){throw 'Release output already exists. Inspect
 $work=Join-Path $projectRoot ('bin/ReleaseBuild/'+[Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($work)|Out-Null
 $metadata=Join-Path $work 'installer.json'
-& (Join-Path $PSScriptRoot 'Build-Installer.ps1') -Version $Version -Dotnet $Dotnet -OutputMetadataPath $metadata
+& (Join-Path $PSScriptRoot 'Build-Installer.ps1') -Version $Version -Dotnet $Dotnet -MakeNsis $MakeNsis -OutputMetadataPath $metadata
 $built=Get-Content -LiteralPath $metadata -Raw|ConvertFrom-Json
 $small=Join-Path $work 'framework-dependent'
 & $Dotnet publish (Join-Path $projectRoot 'LaunchPad.csproj') -c Release -r win-x64 --self-contained false -p:PublishSingleFile=false -p:DebugType=embedded "-p:RestoreConfigFile=$projectRoot/Tests/NuGet.Config" -o $small
 if($LASTEXITCODE -ne 0){throw 'Framework-dependent publish failed.'}
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-foreach($flavor in @(@{Directory=$built.Application;Suffix=''},@{Directory=$small;Suffix='-framework-dependent'})){
+foreach($flavor in @(@{Directory=$built.Application;Suffix='';Base=$BaseSelfContainedDirectory},@{Directory=$small;Suffix='-framework-dependent';Base=$BaseFrameworkDependentDirectory})){
     $actual=[Reflection.AssemblyName]::GetAssemblyName((Join-Path $flavor.Directory 'LaunchPad.dll')).Version
     if($actual.ToString() -ne $built.Version){throw 'Published assembly version mismatch.'}
     [IO.Compression.ZipFile]::CreateFromDirectory($flavor.Directory,(Join-Path $output "LaunchPad-v$Version-win-x64$($flavor.Suffix).zip"),[IO.Compression.CompressionLevel]::Optimal,$false)
     $incremental=Join-Path $work ('incremental'+$flavor.Suffix)
-    & (Join-Path $PSScriptRoot 'New-UpdateAssets.ps1') -PublishDirectory $flavor.Directory -OutputDirectory $incremental
+    & (Join-Path $PSScriptRoot 'New-UpdateAssets.ps1') -PublishDirectory $flavor.Directory -OutputDirectory $incremental -BaseDirectory $flavor.Base
     foreach($file in Get-ChildItem -LiteralPath $incremental -File){
         $destination=Join-Path $output $file.Name
         if(Test-Path -LiteralPath $destination){if((Get-FileHash -LiteralPath $destination).Hash -ne (Get-FileHash -LiteralPath $file.FullName).Hash){throw 'Duplicate asset differs.'}}
