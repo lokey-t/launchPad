@@ -1,4 +1,4 @@
-﻿<Window x:Class="LaunchPad.MainWindow"
+<Window x:Class="LaunchPad.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:loc="clr-namespace:LaunchPad.Services"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,6 +15,19 @@
         KeyDown="Window_KeyDown">
 
     <Window.Resources>
+        <Style x:Key="PluginResultButtonStyle" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Surface" Background="{DynamicResource SubPanelBgBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource HoverBrush}" /></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource AccentBrush}" /></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Surface" Property="Opacity" Value="0.55" /></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
         <conv:IconConverter x:Key="IconConv" />
         <conv:CountToBadgeVisibilityConverter x:Key="BadgeVisConv" />
 
@@ -322,9 +335,12 @@
                             <MenuItem Header="{loc:Loc '打开时间'}" Tag="Opened" ToolTip="{loc:Loc '最近打开的在前'}" Click="SortEntries_Click" />
                         </MenuItem>
                         <Separator />
+                        <MenuItem Header="{loc:Loc '插件快捷操作'}" SubmenuOpened="PluginActions_Opened"><MenuItem Header="{loc:Loc '暂无可用插件操作'}" IsEnabled="False" /></MenuItem>
                         <MenuItem Header="{loc:Loc '设置'}" Click="Settings_Click" />
                     </ContextMenu>
                 </ScrollViewer.ContextMenu>
+                <StackPanel>
+                <StackPanel x:Name="PluginResultsHost" Visibility="Collapsed" Margin="8,4,8,12" />
                 <ItemsControl x:Name="IconGrid" Background="Transparent"
                               PreviewMouseLeftButtonDown="Grid_MouseDown"
                               PreviewMouseMove="Grid_MouseMove"
@@ -335,6 +351,7 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
+                </StackPanel>
             </ScrollViewer>
 
             <!-- ═══ 底部信息条 ═══ -->

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -55,6 +55,7 @@ public partial class MainWindow
         if (move.Items.Count == 0) move.Items.Add(new MenuItem { Header = "暂无分类", IsEnabled = false });
         menu.Items.Add(move);
         if (!IsFolderOpen) menu.Items.Add(CreateSortingMenu());
+        if(entry is AppItem pluginContext) AddPluginContext(menu, pluginContext.Path);
         menu.Items.Add(new Separator());
         menu.Items.Add(ActionItem(AppLanguage.T("修改名称…"), "✎", () =>
         {

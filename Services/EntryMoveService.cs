@@ -1,4 +1,4 @@
-using LaunchPad.Models;
+﻿using LaunchPad.Models;
 
 namespace LaunchPad.Services;
 
@@ -18,6 +18,7 @@ public static class EntryMoveService
         Detach(config, item, folder);
         folder.Items.Insert(Math.Clamp(index, 0, folder.Items.Count), item);
         folder.RefreshThumb();
+        CollapseSmallFolders(config, folder);
         NormalizeOrder(config);
         return true;
     }
@@ -39,6 +40,7 @@ public static class EntryMoveService
             order.Insert(Math.Clamp(destination, 0, order.Count), entry.Id);
             config.GlobalOrder = order;
         }
+        CollapseSmallFolders(config);
         NormalizeOrder(config);
         return true;
     }
@@ -52,9 +54,35 @@ public static class EntryMoveService
             {
                 if (entry is not AppItem item || !folder.Items.Remove(item)) continue;
                 folder.RefreshThumb();
-                if (folder.Items.Count == 0 && folder != keep) category.Entries.Remove(folder);
+
             }
         }
+    }
+
+    public static void CollapseSmallFolders(LauncherConfig config, AppFolder keep = null)
+    {
+        foreach (var category in config.Categories)
+        {
+            foreach (var folder in category.Entries.OfType<AppFolder>().ToList())
+            {
+                if (folder == keep || folder.Items.Count > 1) continue;
+                int index = category.Entries.IndexOf(folder);
+                int global = config.GlobalOrder.IndexOf(folder.Id);
+                if (folder.Items.Count == 1)
+                {
+                    var remaining = folder.Items[0];
+                    folder.Items.Clear();
+                    category.Entries[index] = remaining;
+                    if (global >= 0) config.GlobalOrder[global] = remaining.Id;
+                }
+                else
+                {
+                    category.Entries.RemoveAt(index);
+                    config.GlobalOrder.Remove(folder.Id);
+                }
+            }
+        }
+        NormalizeOrder(config);
     }
 
     public static void NormalizeOrder(LauncherConfig config)

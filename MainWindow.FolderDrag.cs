@@ -244,14 +244,14 @@ namespace LaunchPad
 			_openFolder.Items.Remove(folderDragItem);
 			_openFolder.RefreshThumb();
 			appCategory.Entries.Insert(Math.Clamp(value, 0, appCategory.Entries.Count), folderDragItem);
-			if (_openFolder.Items.Count == 0)
+			if (_openFolder.Items.Count <= 1)
 			{
 				// 拖空：先播放关闭动画，动画结束（格子回落原位）后再移除文件夹并重建网格，
 				// 避免关闭过程中新格子过早显示
 				AppFolder emptyFolder = _openFolder;
 				CloseFolderWithAnim(delegate
 				{
-					sourceCategory?.Entries.Remove(emptyFolder);
+					EntryMoveService.CollapseSmallFolders(_app.Config);
 					_app.SaveConfig();
 					if (_activeTab.IsAll)
 					{

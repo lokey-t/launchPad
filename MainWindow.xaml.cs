@@ -356,6 +356,7 @@ namespace LaunchPad
             GridScroll.ScrollChanged += (_, _) => UpdateBottomBarShadow();
             UpdateBottomBarShadow();
 			base.DataContext = this;
+            IsVisibleChanged += (_, _) => { if(!IsVisible) _pluginSearch?.Cancel(); };
             InitializeDragRouting();
             InputBehavior.Apply(this);
             Closing += (_, e) => { if (!_app.IsQuitting) { e.Cancel = true; HideAnimated(); } };
@@ -790,6 +791,7 @@ namespace LaunchPad
 				CloseFolderWithAnim();
 			}
 			string q = SearchBox.Text.Trim();
+            QueuePluginSearch(q);
 			if (q.Length == 0)
 			{
 				if (_activeTab != null)
@@ -1126,6 +1128,8 @@ namespace LaunchPad
 
 		private void AfterRemove()
 		{
+			if (_openFolder != null && _openFolder.Items.Count <= 1) HideFolderNow();
+			EntryMoveService.CollapseSmallFolders(_app.Config);
 			_app.SaveConfig();
 			if (_activeTab != null && _activeTab.IsAll)
 			{

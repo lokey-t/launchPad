@@ -1,0 +1,7 @@
+{
+  "Id": "sample.calculator", "Name": "Calculator / 计算器", "Version": "1.0.0", "Author": "LaunchPad examples", "ApiVersion": 1,
+  "Description": "Type = followed by arithmetic / 输入 = 后跟算式，例如 = 12 * 3",
+  "Executable": "Calculator.exe", "SearchPrefix": "=", "Permissions": ["clipboard.write"],
+  "Commands": [{"Id":"copy", "Title":"Calculator help / 计算器用法", "Context":false}],
+  "Settings": [{"Key":"digits", "Title":"Decimal places (0–10) / 小数位数（0–10）", "Default":"4"}]
+}

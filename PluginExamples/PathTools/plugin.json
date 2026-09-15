@@ -1,0 +1,7 @@
+{
+  "Id":"sample.path-tools", "Name":"Path Tools / 路径工具", "Version":"1.0.0", "Author":"LaunchPad examples", "ApiVersion":1,
+  "Description":"Search one folder with path; copy an entry path or open its parent / 输入 path 搜索指定文件夹，支持右键复制路径或打开所在目录",
+  "Executable":"PathTools.exe", "SearchPrefix":"path", "Permissions":["context.read","clipboard.write","files.open"],
+  "Commands":[{"Id":"open","Title":"Open configured folder / 打开指定文件夹","Context":false},{"Id":"copy-path","Title":"Copy path / 复制路径","Context":true},{"Id":"parent","Title":"Open parent folder / 打开所在目录","Context":true}],
+  "Settings":[{"Key":"folder","Title":"Folder to search (empty = Desktop) / 搜索文件夹（留空为桌面）","Default":""}]
+}

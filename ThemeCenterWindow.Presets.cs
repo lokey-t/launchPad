@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using LaunchPad.Models;
 using LaunchPad.Services;
@@ -57,9 +57,13 @@ public sealed partial class ThemeCenterWindow
     {
         var dialog=new OpenFileDialog { Title=AppLanguage.T("导入主题"),Filter=AppLanguage.T("LaunchPad 主题")+" (*.qdtstylebackup)|*.qdtstylebackup" };
         if(dialog.ShowDialog(this)!=true) return;
+        await ImportPresetFile(dialog.FileName);
+    }
+    public async Task ImportPresetFile(string path)
+    {
         await PresetAction(async()=>
         {
-            var point=await Task.Run(()=>ThemePresetService.Import(dialog.FileName));
+            var point=await Task.Run(()=>ThemePresetService.Import(path));
             RefreshPresets(point.Id);
             if(ThemePresetService.IsNewer(point.Version)) ShowNewerThemeNotice();
             _status.Text=AppLanguage.T("主题已导入。点击“应用主题”覆盖当前所选范围的主题。");

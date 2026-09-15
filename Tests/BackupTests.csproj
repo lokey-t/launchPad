@@ -6,6 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
   </PropertyGroup>
-  <ItemGroup><Compile Remove="Updates/**/*.cs;Sorting/**/*.cs;Setup/**/*.cs" /><ProjectReference Include="..\LaunchPad.csproj" /></ItemGroup>
+  <ItemGroup><Compile Remove="Updates/**/*.cs;Sorting/**/*.cs;Setup/**/*.cs;Plugins/**/*.cs" /><ProjectReference Include="..\LaunchPad.csproj" /></ItemGroup>
   <ItemGroup><Resource Include="..\Assets\app.ico" Link="Assets\app.ico" /></ItemGroup>
 </Project>

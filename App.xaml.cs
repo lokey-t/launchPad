@@ -57,9 +57,9 @@ public partial class App : Application
         _mutex = new Mutex(true, "LaunchPad_SingleInstance", out var createdNew);
         if (!createdNew)
         {
-            var backupFile = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
+            var backupFile = e.Args.FirstOrDefault(a => BackupFileAssociation.IsSupported(a));
             if (backupFile != null && BackupFileAssociation.Forward(backupFile)) { Shutdown(); return; }
-            if(!BackupFileAssociation.ForwardShowMain())
+            if(!e.Args.Contains("--autostart") && !BackupFileAssociation.ForwardShowMain())
                 MessageBox.Show("暂时无法唤起主界面，请稍后重试。", "LaunchPad", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
@@ -71,13 +71,14 @@ public partial class App : Application
         ApplyTheme(Config.Theme);
 
         _mainWindow = new MainWindow(this);
-        _settingsWindow = new SettingsWindow(this);
+
 
         SetupHotkey();
         SetupTray();
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => StartupService.SetEnabled(Config.AutoStart)));
         try { BackupFileAssociation.Register(); }
         catch (Exception ex) { System.Diagnostics.Trace.WriteLine("备份文件关联注册失败：" + ex.Message); }
-        _ = Task.Run(() => BackupFileAssociation.Listen(path => Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(path))), _backupCancellation.Token, () => Dispatcher.BeginInvoke(new Action(ShowMain)), () => Dispatcher.BeginInvoke(new Action(() => { if (ConfigService.Save(Config)) ExitApp(); }))));
+        _ = Task.Run(() => BackupFileAssociation.Listen(path => Dispatcher.BeginInvoke(new Action(() => OpenAssociatedFile(path))), _backupCancellation.Token, () => Dispatcher.BeginInvoke(new Action(ShowMain)), () => Dispatcher.BeginInvoke(new Action(() => { if (ConfigService.Save(Config)) ExitApp(); }))));
         _backupTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         _backupTimer.Tick += (_, _) => BackupService.CheckExternalChanges(Config);
         _backupTimer.Start();
@@ -89,12 +90,12 @@ public partial class App : Application
                 new OnboardingWindow(this).ShowDialog();
                 ShowMain();
                 StartUpdateCheck();
-                var backup=e.Args.FirstOrDefault(a=>a.EndsWith(".qdtbackup",StringComparison.OrdinalIgnoreCase));
-                if(backup!=null) OpenBackupFile(backup);
+                var backup=e.Args.FirstOrDefault(a => BackupFileAssociation.IsSupported(a));
+                if(backup!=null) OpenAssociatedFile(backup);
             }));
             return;
         }
-        if (Config.MinimizeToTray && Config.AutoStart)
+        if (Config.MinimizeToTray && e.Args.Contains("--autostart"))
         {
             _mainWindow.Hide();
         }
@@ -102,9 +103,26 @@ public partial class App : Application
         {
             ShowMain();
         }
-        var initialBackup = e.Args.FirstOrDefault(a => a.EndsWith(".qdtbackup", StringComparison.OrdinalIgnoreCase));
+        var initialBackup = e.Args.FirstOrDefault(a => BackupFileAssociation.IsSupported(a));
         StartUpdateCheck();
-        if (initialBackup != null) Dispatcher.BeginInvoke(new Action(() => OpenBackupFile(initialBackup)));
+        if (initialBackup != null) Dispatcher.BeginInvoke(new Action(() => OpenAssociatedFile(initialBackup)));
+    }
+
+    private void OpenAssociatedFile(string path)
+    {
+        if (!System.IO.File.Exists(path)) return;
+        OpenSettings();
+        _settingsWindow.Activate();
+        switch (System.IO.Path.GetExtension(path).ToLowerInvariant())
+        {
+            case ".qdtplugin": _ = _settingsWindow.OpenPluginFile(path); break;
+            case ".qdtstylebackup":
+                var theme = new ThemeCenterWindow(this, _settingsWindow);
+                theme.Loaded += async (_, _) => await theme.ImportPresetFile(path);
+                theme.ShowDialog();
+                break;
+            case ".qdtbackup": _settingsWindow.OpenBackupFile(path); break;
+        }
     }
 
     private void OpenBackupFile(string path)
@@ -124,7 +142,7 @@ public partial class App : Application
         ReRegisterHotkey();
         RefreshMainWindow();
         RefreshMainTheme();
-        _settingsWindow.RefreshFromConfig();
+        _settingsWindow?.RefreshFromConfig();
         ApplyPosition();
     }
 
@@ -139,6 +157,7 @@ public partial class App : Application
 
     public void OpenSettings()
     {
+        _settingsWindow ??= new SettingsWindow(this);
         _settingsWindow.RefreshFromConfig();
         MotionService.Show(_settingsWindow, Config);
     }
@@ -332,6 +351,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        Plugins.PluginService.StopIfStarted();
         _backupTimer?.Stop();
         _trayMenuHost?.Close();
         _backupCancellation.Cancel();

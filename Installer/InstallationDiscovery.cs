@@ -38,8 +38,30 @@ public static class InstallationDiscovery
         using var key=Registry.CurrentUser.CreateSubKey(RegistryPath);key.SetValue("InstallLocation",directory);key.SetValue("Version",version.ToString());
         using var run=Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run",true);
         if(run?.GetValue("LaunchPad")!=null)run.SetValue("LaunchPad","\""+Path.Combine(directory,"LaunchPad.exe")+"\"");
+        UpdateStartupTask(directory);
         Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"LaunchPad.lnk"),directory);
         if(desktop)Shortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"LaunchPad.lnk"),directory);
+    }
+    private static void UpdateStartupTask(string directory)
+    {
+        object service=null,folder=null,task=null,updated=null;
+        try
+        {
+            string sid=System.Security.Principal.WindowsIdentity.GetCurrent().User.Value;
+            string name="LaunchPad-Startup-"+sid;
+            service=Activator.CreateInstance(Type.GetTypeFromProgID("Schedule.Service"));
+            ((dynamic)service).Connect(); folder=((dynamic)service).GetFolder(@"\");
+            task=((dynamic)folder).GetTask(name);
+            var xml=System.Xml.Linq.XDocument.Parse((string)((dynamic)task).Xml);
+            System.Xml.Linq.XNamespace ns="http://schemas.microsoft.com/windows/2004/02/mit/task";
+            var exec=xml.Root.Element(ns+"Actions")?.Element(ns+"Exec");
+            if(exec==null)return;
+            exec.SetElementValue(ns+"Command",Path.Combine(directory,"LaunchPad.exe"));
+            exec.SetElementValue(ns+"WorkingDirectory",directory);
+            updated=((dynamic)folder).RegisterTask(name,xml.ToString(),6,sid,null,3,null);
+        }
+        catch(Exception ex){System.Diagnostics.Trace.WriteLine("LaunchPad startup path: "+ex.Message);}
+        finally{foreach(var item in new[]{updated,task,folder,service})if(item!=null&&System.Runtime.InteropServices.Marshal.IsComObject(item))System.Runtime.InteropServices.Marshal.FinalReleaseComObject(item);}
     }
     private static void Shortcut(string destination,string directory)
     {

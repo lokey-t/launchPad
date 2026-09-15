@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType><TargetFramework>net8.0-windows</TargetFramework><UseWPF>true</UseWPF><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable>
-    <AssemblyName>LaunchPad.Setup</AssemblyName><RootNamespace>LaunchPad.Setup</RootNamespace><Version>0.97.1</Version>
+    <AssemblyName>LaunchPad.Setup</AssemblyName><RootNamespace>LaunchPad.Setup</RootNamespace><Version>0.98</Version>
     <ApplicationIcon>../Assets/app.ico</ApplicationIcon><ApplicationManifest>../app.manifest</ApplicationManifest><SatelliteResourceLanguages>zh-Hans;en</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>

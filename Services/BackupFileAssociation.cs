@@ -14,16 +14,25 @@ public static class BackupFileAssociation
     {
         var executable = Environment.ProcessPath;
         if (string.IsNullOrEmpty(executable) || Path.GetFileNameWithoutExtension(executable).Equals("dotnet", StringComparison.OrdinalIgnoreCase)) return;
-        using var extension = Registry.CurrentUser.CreateSubKey(@"Software\Classes\.qdtbackup");
-        extension.SetValue("", "LaunchPad.Backup");
-        using var type = Registry.CurrentUser.CreateSubKey(@"Software\Classes\LaunchPad.Backup");
-        type.SetValue("", "LaunchPad 备份");
-        using var icon = type.CreateSubKey("DefaultIcon");
-        icon.SetValue("", $"\"{executable}\",0");
-        using var command = type.CreateSubKey(@"shell\open\command");
-        command.SetValue("", $"\"{executable}\" \"%1\"");
+        foreach(var (suffix, name, label) in new[] {
+            (".qdtbackup", "Backup", "LaunchPad 备份"),
+            (".qdtplugin", "Plugin", "LaunchPad 插件"),
+            (".qdtstylebackup", "Theme", "LaunchPad 主题") })
+        {
+            using var extension = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + suffix);
+            extension.SetValue("", "LaunchPad." + name);
+            using var type = Registry.CurrentUser.CreateSubKey(@"Software\Classes\LaunchPad." + name);
+            type.SetValue("", label);
+            using var icon = type.CreateSubKey("DefaultIcon");
+            icon.SetValue("", $"\"{FileTypeIconService.EnsureIcon(name)}\",0");
+            using var command = type.CreateSubKey(@"shell\open\command");
+            command.SetValue("", $"\"{executable}\" \"%1\"");
+        }
         SHChangeNotify(0x08000000, 0, IntPtr.Zero, IntPtr.Zero);
     }
+
+    public static bool IsSupported(string path) =>
+        new[] { ".qdtbackup", ".qdtplugin", ".qdtstylebackup" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
 
     private const string ShowCommand="LaunchPad.ShowMain";
     [System.Runtime.InteropServices.DllImport("kernel32.dll",SetLastError=true)]
@@ -61,7 +70,7 @@ public static class BackupFileAssociation
                 var path = await reader.ReadLineAsync(timeout.Token);
                 if(path==ShowCommand) { showMain?.Invoke(); continue; }
                 if(path=="LaunchPad.ExitForUpdate") { exitForUpdate?.Invoke(); continue; }
-                if (path?.Length <= 32767 && Path.GetExtension(path).Equals(".qdtbackup", StringComparison.OrdinalIgnoreCase)) open(path);
+                if (path?.Length <= 32767 && IsSupported(path)) open(path);
             }
             catch (OperationCanceledException) { }
             catch (IOException) { await Task.Delay(500, cancellation); }

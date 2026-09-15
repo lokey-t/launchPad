@@ -224,6 +224,7 @@
                         <RadioButton x:Name="NavAppearance" Style="{StaticResource NavItem}" Content="{loc:Loc '外观与动效'}" GroupName="nav" Tag="appearance" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavManage" Style="{StaticResource NavItem}" Content="{loc:Loc '分类管理'}" GroupName="nav" Tag="manage" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavBackup" Style="{StaticResource NavItem}" Content="{loc:Loc '备份与恢复'}" GroupName="nav" Tag="backup" Checked="Nav_Checked" />
+                        <RadioButton x:Name="NavPlugins" Style="{StaticResource NavItem}" Content="{loc:Loc '插件'}" GroupName="nav" Tag="plugins" Checked="Nav_Checked" />
                         <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}" Content="{loc:Loc '关于'}" GroupName="nav" Tag="about" Checked="Nav_Checked" />
                     </StackPanel>
                     <TextBlock Grid.Row="2" Text="{loc:Loc '让常用工具触手可及'}" FontSize="11" Margin="10,0,0,0" Foreground="{DynamicResource TextHintBrush}" />
@@ -501,6 +502,12 @@
                         <Button Content="{loc:Loc '删除'}" Click="DeleteBackup_Click" Padding="12,7" Margin="0,0,7,7" />
                     </WrapPanel>
                     <TextBlock Text="{loc:Loc '配置、自定义图标与背景打包为 .qdtbackup。导入后可选择恢复。'}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource TextHintBrush}" Margin="0,8,0,0" />
+                </StackPanel>
+                <StackPanel x:Name="PanelPlugins" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource GroupTitle}" Text="{loc:Loc '插件'}" />
+                    <TextBlock Text="{loc:Loc '插件按需运行。安装后需手动启用，请仅使用可信来源的插件。'}" TextWrapping="Wrap" Foreground="{DynamicResource TextSecondaryBrush}" Margin="0,0,0,16" />
+                    <Button x:Name="InstallPluginButton" Content="{loc:Loc '安装插件…'}" Click="InstallPlugin_Click" HorizontalAlignment="Left" Padding="16,8" Margin="0,0,0,18" />
+                    <StackPanel x:Name="PluginCards" />
                 </StackPanel>
                 <!-- 关于 -->
                 <StackPanel x:Name="PanelAbout" Visibility="Collapsed">

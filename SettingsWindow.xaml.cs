@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -110,7 +110,7 @@ public partial class SettingsWindow : Window
         AutoBackupToggle.IsChecked = c.AutoBackup;
         RefreshBackups();
         _refreshing = false;
-        var selectedPage=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
+        var selectedPage=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavPlugins,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
         if(selectedPage!=null) Nav_Checked(selectedPage,new RoutedEventArgs());
         var selectedMode = new[] { AnimationOff, AnimationFast, AnimationBalanced, AnimationOptimized }
             .FirstOrDefault(option => option.IsChecked == true);
@@ -159,7 +159,7 @@ public partial class SettingsWindow : Window
         AppLanguage.SetLanguage(_app.Config.Language);
         RefreshFromConfig();
         _app.RefreshMainWindow();
-        var selected=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
+        var selected=new[]{NavGeneral,NavHotkey,NavAppearance,NavManage,NavBackup,NavPlugins,NavAbout}.FirstOrDefault(n=>n.IsChecked==true);
         if(selected!=null) Nav_Checked(selected,new RoutedEventArgs());
     }
 
@@ -176,6 +176,7 @@ public partial class SettingsWindow : Window
             "appearance" => (AppLanguage.T("外观与动效"), AppLanguage.T("选择适合你的视觉风格与操作节奏。")),
             "manage" => (AppLanguage.T("分类管理"), AppLanguage.T("整理分类，让常用工具各就其位。")),
             "backup" => (AppLanguage.T("备份与恢复"), AppLanguage.T("保留每一次整理，随时回到熟悉的启动台。")),
+            "plugins" => (AppLanguage.T("插件"), AppLanguage.T("扩展搜索、菜单和快捷操作。")),
             "about" => (AppLanguage.T("关于 LaunchPad"), AppLanguage.T("轻量、专注的桌面应用启动器。")),
             _ => (AppLanguage.T("通用"), AppLanguage.T("设置启动方式，以及启动台的日常行为。"))
         };
@@ -187,6 +188,7 @@ public partial class SettingsWindow : Window
         PanelManage.Visibility = tag == "manage" ? Visibility.Visible : Visibility.Collapsed;
         PanelAbout.Visibility = tag == "about" ? Visibility.Visible : Visibility.Collapsed;
         if (PanelBackup != null) PanelBackup.Visibility = tag == "backup" ? Visibility.Visible : Visibility.Collapsed;
+        if (PanelPlugins != null) { PanelPlugins.Visibility = tag == "plugins" ? Visibility.Visible : Visibility.Collapsed; if(tag == "plugins") RefreshPlugins(); }
         SettingsScroll.ScrollToTop();
         SettingsPages.BeginAnimation(UIElement.OpacityProperty,
             new System.Windows.Media.Animation.DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(MotionService.Duration(_app.Config, 160))));

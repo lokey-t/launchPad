@@ -1,4 +1,4 @@
-# LaunchPad v0.97.1
+﻿# LaunchPad v0.98
 
 [中文](README.md) · **English**
 
@@ -14,7 +14,16 @@ A lightweight Windows application launcher with keyboard shortcuts, categories, 
 | --- | --- |
 | ![Theme Center](docs/screenshots/theme-center.png) | ![Settings](docs/screenshots/settings.png) |
 
+## v0.98 changes
+
+- Experimental plugin API v1 with installation, search, context menus and independent settings.
+- Folders dissolve automatically when one item remains, preserving its position.
+- Faster sign-in startup through an immediate logon task with a fallback, plus deferred settings-window creation.
+- Distinct plugin, theme and backup file badges; double-click a plugin file to import it.
+
 ## Download and run
+
+The current source is v0.98. The links below remain on the published v0.97.1 packages until v0.98 assets are released.
 
 Download from [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97.1) or [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97.1):
 
@@ -95,3 +104,7 @@ Exit any instance using the output directory before rebuilding, or choose a diff
 See [release notes](RELEASE_NOTES.md). A SHA-256 checksum file accompanies the release.
 
 Build release assets with [Build-Release.ps1](tools/Build-Release.ps1). See [installer details](docs/INSTALLER.md) and the reusable [launchpad-release skill](docs/skills/launchpad-release/SKILL.md).
+
+## Experimental plugin extensions
+
+The current source adds plugin API v1 (not included in the v0.97.1 release): on-demand child processes, search, file context menus, home quick actions and plugin settings. See [plugin development](docs/PLUGINS.md), `PluginSdk/` and the two complete `PluginExamples/`. Native plugins run with the current user’s access; process separation is not a security sandbox.

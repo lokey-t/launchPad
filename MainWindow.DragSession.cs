@@ -374,6 +374,11 @@ public partial class MainWindow
     {
         if (_activeTab.IsAll) RebuildAll();
         if (open == null) return;
+        if (EntryMoveService.Owner(_app.Config, open) == null)
+        {
+            HideFolderNow();
+            return;
+        }
         RefreshFolderItems();
         Root.UpdateLayout();
         _openFolderContainer = IconGrid.ItemContainerGenerator.ContainerFromItem(open) as FrameworkElement;

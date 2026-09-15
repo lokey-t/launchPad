@@ -1,3 +1,25 @@
+﻿# LaunchPad v0.98
+
+## 中文
+
+- **新增实验性插件功能**：支持插件安装与管理、搜索扩展、文件右键菜单、主页快捷操作及独立设置；提供 SDK、开发文档和两个示例。双击 `.qdtplugin` 可进入导入确认，确认后导入并启用。插件按需运行于独立进程，支持超时终止、错误日志与连续失败停用；原生插件仅应来自可信来源，进程隔离不是安全沙箱。
+- **优化文件夹逻辑**：拖出、移动或移除条目后，文件夹只剩一个条目时自动解散，剩余条目保留原文件夹位置和自身显示设置；清理空文件夹，保留文件夹内排序与新建流程。
+- **优化开机自启速度**：优先使用无延迟登录计划任务，保留注册表启动回退；延迟创建设置窗口，减少启动阶段工作量。实际启动时间取决于系统环境。
+- **优化扩展文件图标**：插件、主题和备份分别使用紫色拼图、青色调色盘和蓝色备份箱角标，支持多尺寸显示；补充主题文件双击导入和系统文件夹图标。
+
+本次为代码版本提交，安装包及 Release 附件尚未发布。
+
+## English
+
+- **Experimental plugins**: install and manage plugins with search, file context-menu actions, home quick actions and independent settings. Includes an SDK, documentation and two examples. Double-click `.qdtplugin` to confirm import and enable it. On-demand worker processes support timeouts, error logs and automatic disabling after repeated failures. Native plugins must be trusted; process isolation is not a security sandbox.
+- **Folder behavior**: folders automatically dissolve when moving or removing items leaves one entry. The remaining entry retains the folder's position and its own appearance. Empty folders are removed while folder creation and internal sorting remain supported.
+- **Startup performance**: prefer an immediate logon scheduled task with registry fallback, and defer settings-window creation. Actual startup time depends on the system.
+- **File-type icons**: distinct purple puzzle, teal palette and blue archive badges identify plugin, theme and backup files at multiple sizes. Theme files support double-click import; system folders have a dedicated icon.
+
+This is a source version submission. Installer and Release assets have not been published.
+
+---
+
 # LaunchPad v0.97.1
 
 ## 中文

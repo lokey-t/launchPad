@@ -1,4 +1,4 @@
-# LaunchPad v0.97.1
+﻿# LaunchPad v0.98
 
 **中文** · [English](README.en.md)
 
@@ -14,7 +14,16 @@
 | --- | --- |
 | ![主题中心](docs/screenshots/theme-center.png) | ![设置](docs/screenshots/settings.png) |
 
+## v0.98 更新
+
+- 新增实验性插件 API v1，支持安装、搜索扩展、右键操作与独立设置。
+- 文件夹只剩一个条目时自动解散，保留条目所在位置。
+- 优化开机自启：优先使用无延迟登录任务并保留回退，设置窗口延迟创建。
+- 插件、主题和备份文件使用不同角标；双击插件文件可直接导入。
+
 ## 下载与运行
+
+当前源码版本为 v0.98。v0.98 安装包尚未发布，以下下载链接仍指向已发布的 v0.97.1。
 
 从 [GitHub Releases](https://github.com/lokey-t/launchPad/releases/tag/v0.97.1) 或 [Gitee Releases](https://gitee.com/lokey-t/launchPad/releases/tag/v0.97.1) 下载：
 
@@ -95,3 +104,7 @@ dotnet publish LaunchPad.csproj -c Release -r win-x64 --self-contained true -p:P
 见 [发行说明](RELEASE_NOTES.md)。发行版附带 SHA-256 校验文件。
 
 生成发行包见 [Build-Release.ps1](tools/Build-Release.ps1)，安装细节见 [安装说明](docs/INSTALLER.md)，可复用流程见 [launchpad-release skill](docs/skills/launchpad-release/SKILL.md)。
+
+## 实验性插件扩展
+
+当前源码新增插件 API v1（尚未包含在 v0.97.1 发行包中）：独立进程、按需搜索、文件右键菜单、主页快捷操作和插件设置。开发文档见 [插件开发](docs/PLUGINS.md)，SDK 位于 `PluginSdk/`，两个完整示例位于 `PluginExamples/`。插件是当前用户权限的原生程序，不是安全沙箱。
